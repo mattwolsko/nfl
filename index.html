@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NFL Cap Intelligence · mattwolsko</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --green: #00a651;
+    --green-dim: rgba(0,166,81,0.12);
+    --green-border: rgba(0,166,81,0.35);
+    --red: #e63946;
+    --gold: #f4c430;
+    --gold-text: #b8900a;
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #21262d;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --text3: #484f58;
+  }
+
+  html { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; }
+
+  body {
+    min-height: 100vh;
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0,166,81,0.07) 0%, transparent 70%),
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,0.015) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,0.015) 40px);
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(13,17,23,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 32px; height: 56px;
+  }
+
+  .nav-brand {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px; letter-spacing: 3px;
+    color: var(--text);
+    display: flex; align-items: center; gap: 10px;
+  }
+
+  .nav-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  .nav-meta {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; color: var(--text3);
+    letter-spacing: 1px;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    text-align: center;
+    padding: 64px 24px 48px;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  .hero-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 16px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+
+  .hero-eyebrow::before, .hero-eyebrow::after {
+    content: ''; width: 32px; height: 1px; background: var(--green); opacity: 0.4;
+  }
+
+  .hero h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(48px, 8vw, 80px);
+    letter-spacing: 4px; line-height: 0.95;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+
+  .hero h1 span { color: var(--green); }
+
+  .hero p {
+    font-size: 15px; color: var(--text2);
+    line-height: 1.7; max-width: 480px; margin: 0 auto 24px;
+  }
+
+  .api-key-banner {
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(244,196,48,0.07);
+    border: 1px solid rgba(244,196,48,0.25);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 12px; color: #b8900a;
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 0;
+    text-align: left;
+    flex-wrap: wrap;
+  }
+
+  .api-key-banner input {
+    flex: 1; min-width: 200px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(244,196,48,0.3);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px; color: var(--text);
+    outline: none;
+  }
+
+  .api-key-banner input:focus { border-color: rgba(244,196,48,0.6); }
+
+  .api-key-banner button {
+    background: rgba(244,196,48,0.15);
+    border: 1px solid rgba(244,196,48,0.4);
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px; color: #b8900a;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .api-key-banner button:hover { background: rgba(244,196,48,0.25); }
+
+  /* ── MAIN LAYOUT ── */
+  .main {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+
+  /* ── TEAM GRID ── */
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; letter-spacing: 2.5px;
+    text-transform: uppercase; color: var(--text3);
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+
+  .section-label::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  .team-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+    gap: 6px; margin-bottom: 40px;
+  }
+
+  .team-btn {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 4px;
+    cursor: pointer;
+    font-size: 11px; font-family: 'DM Mono', monospace; font-weight: 500;
+    color: var(--text2);
+    transition: all 0.15s; text-align: center; letter-spacing: 0.5px;
+  }
+
+  .team-btn:hover {
+    border-color: var(--green-border);
+    color: var(--text);
+    background: var(--green-dim);
+  }
+
+  .team-btn.active {
+    background: var(--green);
+    border-color: var(--green);
+    color: #fff;
+    box-shadow: 0 0 16px rgba(0,166,81,0.3);
+  }
+
+  /* ── RESULTS ── */
+  .results { min-height: 300px; }
+
+  .empty-state {
+    text-align: center; padding: 80px 20px;
+    color: var(--text3);
+  }
+
+  .empty-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.3; }
+  .empty-state p { font-size: 14px; }
+
+  .loading-wrap {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 20px;
+    padding: 80px 20px;
+  }
+
+  .loading-bar-track {
+    width: 240px; height: 2px;
+    background: var(--border);
+    border-radius: 2px; overflow: hidden;
+  }
+
+  .loading-bar {
+    height: 100%;
+    background: var(--green);
+    border-radius: 2px;
+    animation: sweep 1.4s ease-in-out infinite;
+  }
+
+  @keyframes sweep {
+    0%   { transform: translateX(-100%); width: 55%; }
+    50%  { transform: translateX(90%);   width: 55%; }
+    100% { transform: translateX(220%);  width: 55%; }
+  }
+
+  .loading-msg {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px; color: var(--text3);
+    letter-spacing: 1px;
+  }
+
+  /* ── TEAM HEADER ── */
+  .team-hero {
+    background: linear-gradient(135deg, rgba(0,166,81,0.08) 0%, var(--bg2) 60%);
+    border: 1px solid rgba(0,166,81,0.2);
+    border-radius: 14px;
+    padding: 24px 28px;
+    margin-bottom: 16px;
+    display: flex; align-items: center;
+    justify-content: space-between; flex-wrap: wrap; gap: 16px;
+  }
+
+  .team-hero-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 40px; letter-spacing: 3px; line-height: 1;
+    color: var(--text);
+  }
+
+  .team-tags { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+
+  .tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; letter-spacing: 1px;
+    padding: 4px 10px; border-radius: 20px;
+    border: 1px solid;
+  }
+
+  .tag-green { background: var(--green-dim); color: var(--green); border-color: var(--green-border); }
+  .tag-blue  { background: rgba(55,138,221,0.12); color: #5aa8e8; border-color: rgba(55,138,221,0.3); }
+  .tag-red   { background: rgba(230,57,70,0.1); color: var(--red); border-color: rgba(230,57,70,0.3); }
+  .tag-gold  { background: rgba(244,196,48,0.1); color: var(--gold-text); border-color: rgba(244,196,48,0.3); }
+
+  .verdict {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 500;
+    padding: 7px 16px; border-radius: 24px; border: 1px solid;
+  }
+
+  .verdict-good { background: var(--green-dim); color: var(--green); border-color: var(--green-border); }
+  .verdict-mid  { background: rgba(244,196,48,0.1); color: var(--gold-text); border-color: rgba(244,196,48,0.3); }
+  .verdict-bad  { background: rgba(230,57,70,0.1); color: var(--red); border-color: rgba(230,57,70,0.3); }
+
+  /* ── METRIC CARDS ── */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px; margin-bottom: 16px;
+  }
+
+  .metric-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+
+  .metric-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--text3);
+    margin-bottom: 8px;
+  }
+
+  .metric-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 30px; letter-spacing: 1px; line-height: 1;
+    color: var(--text);
+  }
+
+  .metric-sub { font-size: 11px; color: var(--text2); margin-top: 5px; }
+
+  /* ── SECTION TITLE ── */
+  .sec {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--text3);
+    margin: 24px 0 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+
+  .sec::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* ── EFFICIENCY METER ── */
+  .eff-track {
+    height: 16px; background: var(--bg3);
+    border-radius: 8px; overflow: hidden; margin: 8px 0;
+  }
+
+  .eff-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00a651, #00c96b);
+    border-radius: 8px;
+    transition: width 0.9s cubic-bezier(.16,1,.3,1);
+  }
+
+  .eff-labels {
+    display: flex; justify-content: space-between;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; color: var(--text3);
+  }
+
+  /* ── POSITION BARS ── */
+  .pos-bars { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+
+  .pos-row { display: flex; align-items: center; gap: 10px; }
+
+  .pos-lbl {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; font-weight: 500;
+    color: var(--text2); width: 40px; flex-shrink: 0;
+  }
+
+  .pos-track {
+    flex: 1; height: 8px;
+    background: var(--bg3); border-radius: 4px; overflow: hidden;
+  }
+
+  .pos-bar { height: 100%; border-radius: 4px; transition: width 0.7s cubic-bezier(.16,1,.3,1); }
+
+  .pos-amt {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; color: var(--text2);
+    width: 54px; text-align: right; flex-shrink: 0;
+  }
+
+  /* ── DRAFT VS FA ── */
+  .dvf-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px; margin-bottom: 16px;
+  }
+
+  .dvf-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+  }
+
+  .dvf-lbl {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--text3);
+    margin-bottom: 8px;
+  }
+
+  .dvf-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px; letter-spacing: 1px; line-height: 1;
+  }
+
+  .dvf-num.green { color: var(--green); }
+  .dvf-num.red   { color: var(--red); }
+  .dvf-num.gold  { color: var(--gold-text); }
+
+  .dvf-sub { font-size: 11px; color: var(--text2); margin-top: 6px; }
+
+  .strat-note {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 16px;
+    font-size: 12px; color: var(--text2);
+    margin-bottom: 16px; line-height: 1.6;
+  }
+
+  /* ── DEAD CAP ── */
+  .dead-cap-list {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden; margin-bottom: 16px;
+  }
+
+  .dead-row {
+    display: flex; align-items: center;
+    justify-content: space-between;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .dead-row:last-child { border-bottom: none; }
+
+  .dead-name { font-size: 13px; font-weight: 500; color: var(--text); }
+  .dead-reason { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .dead-amt { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--red); }
+
+  /* ── ANALYST BOX ── */
+  .analyst-box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--green);
+    border-radius: 0 10px 10px 0;
+    padding: 18px 20px; margin-bottom: 16px;
+  }
+
+  .analyst-box h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px; letter-spacing: 1px;
+    margin-bottom: 10px; color: var(--text);
+  }
+
+  .analyst-box p { font-size: 13px; line-height: 1.7; color: var(--text2); margin-bottom: 8px; }
+  .analyst-box p:last-child { margin-bottom: 0; }
+
+  .key-lbl {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; letter-spacing: 1px;
+    text-transform: uppercase; display: block; margin-bottom: 4px;
+  }
+
+  .key-lbl.green { color: var(--green); }
+  .key-lbl.red   { color: var(--red); }
+
+  /* ── ERROR ── */
+  .error-box {
+    background: rgba(230,57,70,0.07);
+    border: 1px solid rgba(230,57,70,0.25);
+    border-radius: 10px; padding: 20px;
+    text-align: center; font-size: 13px; color: var(--text2);
+  }
+
+  .retry-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-top: 12px; padding: 8px 16px;
+    background: rgba(230,57,70,0.1);
+    border: 1px solid rgba(230,57,70,0.3);
+    border-radius: 8px; cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; color: var(--red);
+    transition: all 0.15s;
+  }
+
+  .retry-btn:hover { background: rgba(230,57,70,0.18); }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align: center; padding: 32px 24px;
+    border-top: 1px solid var(--border);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; color: var(--text3);
+    letter-spacing: 0.5px; line-height: 1.8;
+  }
+
+  footer a { color: var(--green); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  @media (max-width: 600px) {
+    nav { padding: 0 16px; }
+    .main { padding: 0 16px 60px; }
+    .hero { padding: 40px 16px 32px; }
+    .dvf-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">
+    <div class="nav-dot"></div>
+    CAP INTELLIGENCE
+  </div>
+  <div class="nav-meta">mattwolsko · 2024 NFL SEASON</div>
+</nav>
+
+<div class="hero">
+  <div class="hero-eyebrow">Sports Analytics Project</div>
+  <h1>NFL <span>Cap</span><br>Intelligence</h1>
+  <p>AI-powered salary cap efficiency analysis. Pick any team to instantly break down their spending, dead money, draft vs. free agency strategy, and overall value for money.</p>
+
+  <div class="api-key-banner" id="keyBanner">
+    <span>🔑 API KEY</span>
+    <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." />
+    <button onclick="saveKey()">Save & activate</button>
+    <span id="keyStatus" style="font-size:11px;margin-left:4px"></span>
+  </div>
+</div>
+
+<div class="main">
+  <div class="section-label">Choose a team</div>
+  <div class="team-grid" id="teamGrid"></div>
+
+  <div class="results" id="results">
+    <div class="empty-state">
+      <div class="empty-icon">🏈</div>
+      <p>Select a team above to load their cap breakdown</p>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Built by <a href="https://github.com/mattwolsko" target="_blank">mattwolsko</a> ·
+  Data sourced via AI analysis of public cap figures ·
+  Cross-check at <a href="https://overthecap.com" target="_blank">OverTheCap</a> &amp;
+  <a href="https://spotrac.com" target="_blank">Spotrac</a>
+</footer>
+
+<script>
+const TEAMS = [
+  'ARI','ATL','BAL','BUF','CAR','CHI','CIN','CLE',
+  'DAL','DEN','DET','GB','HOU','IND','JAX','KC',
+  'LAC','LAR','LV','MIA','MIN','NE','NO','NYG',
+  'NYJ','PHI','PIT','SEA','SF','TB','TEN','WSH'
+];
+
+const TEAM_NAMES = {
+  ARI:'Arizona Cardinals',ATL:'Atlanta Falcons',BAL:'Baltimore Ravens',
+  BUF:'Buffalo Bills',CAR:'Carolina Panthers',CHI:'Chicago Bears',
+  CIN:'Cincinnati Bengals',CLE:'Cleveland Browns',DAL:'Dallas Cowboys',
+  DEN:'Denver Broncos',DET:'Detroit Lions',GB:'Green Bay Packers',
+  HOU:'Houston Texans',IND:'Indianapolis Colts',JAX:'Jacksonville Jaguars',
+  KC:'Kansas City Chiefs',LAC:'LA Chargers',LAR:'LA Rams',
+  LV:'Las Vegas Raiders',MIA:'Miami Dolphins',MIN:'Minnesota Vikings',
+  NE:'New England Patriots',NO:'New Orleans Saints',NYG:'New York Giants',
+  NYJ:'New York Jets',PHI:'Philadelphia Eagles',PIT:'Pittsburgh Steelers',
+  SEA:'Seattle Seahawks',SF:'San Francisco 49ers',TB:'Tampa Bay Buccaneers',
+  TEN:'Tennessee Titans',WSH:'Washington Commanders'
+};
+
+const POS_COLORS = {
+  QB:'#e63946',WR:'#f4a261',OL:'#2a9d8f',
+  DL:'#457b9d',LB:'#6a4c93',DB:'#00a651',Other:'#555'
+};
+
+let activeTeam = null;
+let cache = {};
+let apiKey = localStorage.getItem('nfl_api_key') || '';
+
+// Init key banner
+if (apiKey) {
+  document.getElementById('apiKeyInput').value = apiKey;
+  document.getElementById('keyStatus').textContent = '✓ Key saved';
+  document.getElementById('keyStatus').style.color = '#00a651';
+}
+
+function saveKey() {
+  const v = document.getElementById('apiKeyInput').value.trim();
+  if (!v.startsWith('sk-ant')) {
+    document.getElementById('keyStatus').textContent = '✗ Invalid key format';
+    document.getElementById('keyStatus').style.color = '#e63946';
+    return;
+  }
+  apiKey = v;
+  localStorage.setItem('nfl_api_key', v);
+  document.getElementById('keyStatus').textContent = '✓ Saved!';
+  document.getElementById('keyStatus').style.color = '#00a651';
+}
+
+// Build team buttons
+const grid = document.getElementById('teamGrid');
+TEAMS.forEach(t => {
+  const btn = document.createElement('button');
+  btn.className = 'team-btn';
+  btn.textContent = t;
+  btn.id = 'btn-' + t;
+  btn.addEventListener('click', () => selectTeam(t));
+  grid.appendChild(btn);
+});
+
+function selectTeam(abbr) {
+  if (!apiKey) {
+    alert('Please enter your Anthropic API key above first.');
+    document.getElementById('apiKeyInput').focus();
+    return;
+  }
+  if (activeTeam) document.getElementById('btn-' + activeTeam).classList.remove('active');
+  activeTeam = abbr;
+  document.getElementById('btn-' + abbr).classList.add('active');
+  if (cache[abbr]) renderData(cache[abbr]);
+  else fetchData(abbr);
+}
+
+const MSGS = [
+  'Scanning cap sheets...',
+  'Tallying dead money...',
+  'Cross-referencing win totals...',
+  'Weighing draft vs. free agency...',
+  'Running efficiency model...',
+];
+
+function showLoading() {
+  let i = 0;
+  document.getElementById('results').innerHTML = `
+    <div class="loading-wrap">
+      <div class="loading-bar-track"><div class="loading-bar"></div></div>
+      <div class="loading-msg" id="ldMsg">${MSGS[0]}</div>
+    </div>`;
+  return setInterval(() => {
+    i = (i + 1) % MSGS.length;
+    const el = document.getElementById('ldMsg');
+    if (el) el.textContent = MSGS[i];
+  }, 900);
+}
+
+async function fetchData(abbr) {
+  const timer = showLoading();
+  const fullName = TEAM_NAMES[abbr];
+
+  const prompt = `You are an NFL cap analyst. Provide a detailed 2024 NFL season salary cap analysis for the ${fullName} (${abbr}).
+
+Return ONLY valid JSON (no markdown, no backticks) in this exact structure:
+{
+  "team": "${fullName}",
+  "abbr": "${abbr}",
+  "totalCap": "<like '$245M'>",
+  "capRank": <1-32>,
+  "wins": <integer>,
+  "losses": <integer>,
+  "costPerWin": "<like '$14.2M'>",
+  "efficiencyScore": <1-100>,
+  "efficiencyVerdict": "<elite|good|average|poor|wasteful>",
+  "positionBreakdown": [
+    {"pos":"QB","pct":<number>,"amount":"<like '$52M'>","note":"<8 words max>"},
+    {"pos":"WR","pct":<number>,"amount":"<like '$38M'>","note":"<8 words max>"},
+    {"pos":"OL","pct":<number>,"amount":"<like '$35M'>","note":"<8 words max>"},
+    {"pos":"DL","pct":<number>,"amount":"<like '$28M'>","note":"<8 words max>"},
+    {"pos":"LB","pct":<number>,"amount":"<like '$18M'>","note":"<8 words max>"},
+    {"pos":"DB","pct":<number>,"amount":"<like '$22M'>","note":"<8 words max>"},
+    {"pos":"Other","pct":<number>,"amount":"<like '$12M'>","note":"<8 words max>"}
+  ],
+  "deadCap": {
+    "total": "<like '$28M'>",
+    "rank": <1-32>,
+    "players": [
+      {"name":"<name>","amount":"<like '$12M'>","reason":"<cut|restructure|injury>"},
+      {"name":"<name>","amount":"<like '$9M'>","reason":"<cut|restructure|injury>"},
+      {"name":"<name>","amount":"<like '$7M'>","reason":"<cut|restructure|injury>"}
+    ]
+  },
+  "draftVsFA": {
+    "draftInvestment": "<like '$42M'>",
+    "faInvestment": "<like '$118M'>",
+    "draftPct": <number>,
+    "faPct": <number>,
+    "topDraftContrib": "<player + position, 6 words max>",
+    "topFAContrib": "<player + position, 6 words max>",
+    "strategy": "<draft-heavy|balanced|FA-heavy>",
+    "strategyNote": "<15 words max>"
+  },
+  "analystTake": "<2-3 sentences, specific and opinionated>",
+  "keyRisk": "<1 sentence>",
+  "keyStrength": "<1 sentence>"
+}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1200,
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    clearInterval(timer);
+
+    if (res.status === 401) throw new Error('Invalid API key — double check it above');
+    if (!res.ok) throw new Error('API error ' + res.status);
+
+    const data = await res.json();
+    const text = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('Unexpected response format');
+
+    const d = JSON.parse(match[0]);
+    cache[abbr] = d;
+    renderData(d);
+  } catch (err) {
+    clearInterval(timer);
+    document.getElementById('results').innerHTML = `
+      <div class="error-box">
+        <strong>Failed to load ${fullName}</strong><br>
+        <small style="color:#484f58">${err.message}</small><br>
+        <button class="retry-btn" onclick="selectTeam('${abbr}')">↺ Retry</button>
+      </div>`;
+  }
+}
+
+function effColor(s) {
+  if (s >= 70) return '#00a651';
+  if (s >= 45) return '#b8900a';
+  return '#e63946';
+}
+
+function verdictCls(v) {
+  if (['elite','good'].includes(v)) return 'verdict-good';
+  if (v === 'average') return 'verdict-mid';
+  return 'verdict-bad';
+}
+
+function verdictIcon(v) {
+  return {elite:'⚡',good:'✓',average:'~',poor:'↓',wasteful:'✗'}[v] || '~';
+}
+
+function stratColor(s) {
+  return {['draft-heavy']:'green',balanced:'gold',['FA-heavy']:'red'}[s] || 'gold';
+}
+
+function renderData(d) {
+  const eff = d.efficiencyScore || 50;
+  const posRows = (d.positionBreakdown || []).map(p => `
+    <div class="pos-row">
+      <span class="pos-lbl">${p.pos}</span>
+      <div class="pos-track">
+        <div class="pos-bar" data-pct="${Math.min(100,p.pct||0)}" style="width:0%;background:${POS_COLORS[p.pos]||'#555'}"></div>
+      </div>
+      <span class="pos-amt">${p.amount}</span>
+    </div>`).join('');
+
+  const deadRows = (d.deadCap?.players || []).map(p => `
+    <div class="dead-row">
+      <div>
+        <div class="dead-name">${p.name}</div>
+        <div class="dead-reason">${p.reason}</div>
+      </div>
+      <div class="dead-amt">${p.amount}</div>
+    </div>`).join('');
+
+  const sc = stratColor(d.draftVsFA?.strategy);
+
+  document.getElementById('results').innerHTML = `
+    <div class="team-hero">
+      <div>
+        <div class="team-hero-name">${d.team}</div>
+        <div class="team-tags">
+          <span class="tag tag-green">2024 SEASON</span>
+          <span class="tag tag-blue">${d.wins}–${d.losses}</span>
+          <span class="tag tag-gold">CAP RANK #${d.capRank}</span>
+        </div>
+      </div>
+      <span class="verdict ${verdictCls(d.efficiencyVerdict)}">${verdictIcon(d.efficiencyVerdict)} ${(d.efficiencyVerdict||'average').toUpperCase()}</span>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">Total cap spend</div>
+        <div class="metric-val">${d.totalCap}</div>
+        <div class="metric-sub">Rank #${d.capRank} in NFL</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">2024 record</div>
+        <div class="metric-val">${d.wins}–${d.losses}</div>
+        <div class="metric-sub">Cost per win: ${d.costPerWin}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Dead cap</div>
+        <div class="metric-val" style="color:var(--red)">${d.deadCap?.total||'N/A'}</div>
+        <div class="metric-sub">Rank #${d.deadCap?.rank||'?'} most dead $</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Efficiency score</div>
+        <div class="metric-val" style="color:${effColor(eff)}">${eff}<span style="font-size:16px;opacity:.5">/100</span></div>
+        <div class="metric-sub">${d.efficiencyVerdict} value for money</div>
+      </div>
+    </div>
+
+    <div class="sec">Cap efficiency</div>
+    <div class="eff-labels"><span>Wasteful</span><span>Average</span><span>Elite</span></div>
+    <div class="eff-track"><div class="eff-fill" id="effFill" style="width:0%"></div></div>
+    <p style="font-size:12px;color:var(--text2);margin-top:8px;font-family:'DM Mono',monospace">
+      ${d.team} scores <strong style="color:${effColor(eff)}">${eff}/100</strong>
+    </p>
+
+    <div class="sec">Position group spending</div>
+    <div class="pos-bars">${posRows}</div>
+
+    <div class="sec">Draft picks vs. free agents</div>
+    <div class="dvf-grid">
+      <div class="dvf-card">
+        <div class="dvf-lbl">Draft investment</div>
+        <div class="dvf-num green">${d.draftVsFA?.draftPct||0}%</div>
+        <div class="dvf-sub">${d.draftVsFA?.draftInvestment} active cap</div>
+        <div class="dvf-sub" style="margin-top:8px">⭐ ${d.draftVsFA?.topDraftContrib||'—'}</div>
+      </div>
+      <div class="dvf-card">
+        <div class="dvf-lbl">Free agent investment</div>
+        <div class="dvf-num ${sc}">${d.draftVsFA?.faPct||0}%</div>
+        <div class="dvf-sub">${d.draftVsFA?.faInvestment} active cap</div>
+        <div class="dvf-sub" style="margin-top:8px">⭐ ${d.draftVsFA?.topFAContrib||'—'}</div>
+      </div>
+    </div>
+    <div class="strat-note">
+      Strategy: <strong style="color:var(--text)">${d.draftVsFA?.strategy||'balanced'}</strong> — ${d.draftVsFA?.strategyNote||''}
+    </div>
+
+    <div class="sec">Dead cap breakdown</div>
+    <div class="dead-cap-list">${deadRows}</div>
+
+    <div class="sec">Analyst take</div>
+    <div class="analyst-box">
+      <h3>📊 Cap Analysis — ${d.team}</h3>
+      <p>${d.analystTake||''}</p>
+      <p style="margin-top:12px">
+        <span class="key-lbl green">Strength</span>
+        ${d.keyStrength||''}
+      </p>
+      <p style="margin-top:10px">
+        <span class="key-lbl red">Key risk</span>
+        ${d.keyRisk||''}
+      </p>
+    </div>
+  `;
+
+  // Animate bars
+  setTimeout(() => {
+    document.getElementById('effFill').style.width = eff + '%';
+    document.querySelectorAll('.pos-bar').forEach(b => {
+      b.style.width = b.dataset.pct + '%';
+    });
+  }, 80);
+}
+</script>
+</body>
+</html>
