@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NBA Draft Value Tracker · mattwolsko</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --orange:#f97316;--orange-dim:rgba(249,115,22,.1);--orange-b:rgba(249,115,22,.3);
+  --green:#22c55e;--green-dim:rgba(34,197,94,.1);--green-b:rgba(34,197,94,.3);
+  --red:#ef4444;--red-dim:rgba(239,68,68,.1);--red-b:rgba(239,68,68,.3);
+  --blue:#3b82f6;--blue-dim:rgba(59,130,246,.1);--blue-b:rgba(59,130,246,.3);
+  --gold:#eab308;--gold-dim:rgba(234,179,8,.1);--gold-b:rgba(234,179,8,.3);--gold-t:#a16207;
+  --bg:#0a0f1a;--bg2:#111827;--bg3:#1f2937;--bg4:#374151;
+  --bdr:rgba(255,255,255,.07);--bdr2:rgba(255,255,255,.12);
+  --t:#f1f5f9;--t2:#94a3b8;--t3:#475569;
+}
+html,body{background:var(--bg);color:var(--t);font-family:'DM Sans',sans-serif;min-height:100vh;}
+body{background-image:radial-gradient(ellipse 70% 40% at 50% -10%,rgba(249,115,22,.06) 0%,transparent 70%);}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:100;background:rgba(10,15,26,.9);backdrop-filter:blur(14px);border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;padding:0 32px;height:54px;}
+.brand{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:3px;display:flex;align-items:center;gap:10px;}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--orange);box-shadow:0 0 8px var(--orange);animation:pulse 2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.nav-right{display:flex;align-items:center;gap:16px;}
+.nav-meta{font-family:'DM Mono',monospace;font-size:11px;color:var(--t3);letter-spacing:1px;}
+
+/* HERO */
+.hero{text-align:center;padding:56px 24px 40px;max-width:720px;margin:0 auto;}
+.eyebrow{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--orange);margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:8px;}
+.eyebrow::before,.eyebrow::after{content:'';width:28px;height:1px;background:var(--orange);opacity:.4;}
+h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(46px,8vw,78px);letter-spacing:4px;line-height:.92;margin-bottom:12px;}
+h1 span{color:var(--orange);}
+.hero p{font-size:14px;color:var(--t2);line-height:1.7;max-width:500px;margin:0 auto 24px;}
+.method-pills{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:0;}
+.pill{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;padding:5px 12px;border-radius:20px;border:1px solid var(--bdr2);background:var(--bg2);color:var(--t3);}
+
+/* TABS */
+.main{max-width:1080px;margin:0 auto;padding:0 24px 80px;}
+.tabs{display:flex;gap:4px;margin-bottom:28px;background:var(--bg2);border:1px solid var(--bdr);border-radius:10px;padding:4px;}
+.tab{flex:1;padding:9px 16px;border-radius:7px;border:none;background:transparent;cursor:pointer;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--t3);transition:all .15s;text-align:center;}
+.tab.active{background:var(--bg3);color:var(--t);border:1px solid var(--bdr2);}
+.tab:hover:not(.active){color:var(--t2);}
+
+/* SECTION LABEL */
+.sec{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--t3);margin:24px 0 12px;display:flex;align-items:center;gap:10px;}
+.sec::after{content:'';flex:1;height:1px;background:var(--bdr);}
+
+/* LEAGUE STATS STRIP */
+.stats-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:28px;}
+.stat-card{background:var(--bg2);border:1px solid var(--bdr);border-radius:10px;padding:14px 16px;}
+.stat-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--t3);margin-bottom:6px;}
+.stat-val{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1px;line-height:1;}
+.stat-sub{font-size:11px;color:var(--t2);margin-top:4px;}
+
+/* TEAM GRADES VIEW */
+.team-filter{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.filter-btn{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;padding:5px 12px;border-radius:6px;border:1px solid var(--bdr);background:var(--bg2);color:var(--t3);cursor:pointer;transition:all .15s;}
+.filter-btn:hover{border-color:var(--bdr2);color:var(--t2);}
+.filter-btn.on{background:var(--orange);border-color:var(--orange);color:#fff;}
+
+.team-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;}
+.team-card{background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;padding:16px 18px;cursor:pointer;transition:all .2s;}
+.team-card:hover{border-color:var(--bdr2);transform:translateY(-1px);}
+.team-card.selected{border-color:var(--orange-b);background:rgba(249,115,22,.04);}
+.tc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.tc-name{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1.5px;}
+.grade-badge{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;}
+.gA{background:var(--green-dim);color:var(--green);border:1px solid var(--green-b);}
+.gB{background:var(--blue-dim);color:var(--blue);border:1px solid var(--blue-b);}
+.gC{background:var(--gold-dim);color:var(--gold-t);border:1px solid var(--gold-b);}
+.gD{background:var(--orange-dim);color:var(--orange);border:1px solid var(--orange-b);}
+.gF{background:var(--red-dim);color:var(--red);border:1px solid var(--red-b);}
+.tc-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.tc-bar-lbl{font-family:'DM Mono',monospace;font-size:9px;color:var(--t3);width:28px;flex-shrink:0;}
+.tc-bar-track{flex:1;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;}
+.tc-bar-fill{height:100%;border-radius:3px;transition:width .6s ease;}
+.tc-bar-val{font-family:'DM Mono',monospace;font-size:9px;color:var(--t2);width:30px;text-align:right;flex-shrink:0;}
+.tc-best{font-size:11px;color:var(--t2);margin-top:8px;padding-top:8px;border-top:1px solid var(--bdr);}
+.tc-best strong{color:var(--t);}
+
+/* DETAIL PANEL */
+.detail-panel{background:var(--bg2);border:1px solid var(--bdr);border-radius:14px;padding:20px 24px;margin-bottom:24px;display:none;}
+.detail-panel.show{display:block;}
+.dp-top{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:16px;}
+.dp-name{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:2px;line-height:1;}
+.dp-meta{font-size:12px;color:var(--t2);margin-top:4px;}
+.dp-pills{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
+.dp-pill{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.5px;padding:4px 10px;border-radius:14px;border:1px solid;}
+.dp-analysis{font-size:13px;color:var(--t2);line-height:1.7;border-left:3px solid var(--orange);padding-left:14px;margin-top:16px;}
+.dp-picks{margin-top:16px;}
+.pick-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--bdr);font-size:13px;}
+.pick-row:last-child{border-bottom:none;}
+.pick-num{font-family:'DM Mono',monospace;font-size:11px;color:var(--t3);width:44px;}
+.pick-name{font-weight:500;color:var(--t);flex:1;}
+.pick-year{font-family:'DM Mono',monospace;font-size:10px;color:var(--t3);width:36px;}
+.pick-score{font-family:'DM Mono',monospace;font-size:11px;width:60px;text-align:right;}
+.score-great{color:var(--green);}
+.score-good{color:var(--blue);}
+.score-ok{color:var(--gold-t);}
+.score-bad{color:var(--red);}
+.steal-tag{font-family:'DM Mono',monospace;font-size:9px;padding:2px 7px;border-radius:4px;margin-left:6px;}
+.steal-tag.steal{background:var(--green-dim);color:var(--green);border:1px solid var(--green-b);}
+.steal-tag.bust{background:var(--red-dim);color:var(--red);border:1px solid var(--red-b);}
+
+/* STEALS/BUSTS VIEW */
+.sb-filters{display:flex;gap:8px;margin-bottom:16px;align-items:center;flex-wrap:wrap;}
+.sb-toggle{display:flex;background:var(--bg2);border:1px solid var(--bdr);border-radius:8px;padding:3px;gap:3px;}
+.sbt{padding:6px 16px;border-radius:6px;border:none;cursor:pointer;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--t3);background:transparent;transition:all .15s;}
+.sbt.on{color:#fff;}
+.sbt.on.steals{background:var(--green);}
+.sbt.on.busts{background:var(--red);}
+.year-sel{font-family:'DM Mono',monospace;font-size:11px;background:var(--bg2);border:1px solid var(--bdr);border-radius:6px;padding:6px 10px;color:var(--t2);cursor:pointer;}
+.sb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;}
+.sb-card{background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;padding:16px 18px;}
+.sb-card.steal-card{border-left:3px solid var(--green);}
+.sb-card.bust-card{border-left:3px solid var(--red);}
+.sb-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;}
+.sb-player{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;line-height:1;}
+.sb-badge{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;padding:4px 10px;border-radius:12px;border:1px solid;white-space:nowrap;}
+.sb-badge.steal{background:var(--green-dim);color:var(--green);border-color:var(--green-b);}
+.sb-badge.bust{background:var(--red-dim);color:var(--red);border-color:var(--red-b);}
+.sb-meta{font-size:11px;color:var(--t2);margin-bottom:10px;}
+.sb-metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;}
+.sb-metric{background:var(--bg3);border-radius:6px;padding:8px 10px;text-align:center;}
+.sb-m-lbl{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:3px;}
+.sb-m-val{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.5px;}
+.sb-verdict{font-size:12px;color:var(--t2);line-height:1.6;padding-top:10px;border-top:1px solid var(--bdr);}
+
+/* SCATTER CHART */
+.scatter-wrap{background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;padding:20px;margin-bottom:24px;overflow-x:auto;}
+.scatter-title{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--t3);margin-bottom:16px;}
+#scatterCanvas{display:block;max-width:100%;}
+
+footer{text-align:center;padding:28px 24px;border-top:1px solid var(--bdr);font-family:'DM Mono',monospace;font-size:11px;color:var(--t3);letter-spacing:.5px;line-height:1.9;}
+footer a{color:var(--orange);text-decoration:none;}
+@media(max-width:600px){nav{padding:0 16px;}.main{padding:0 16px 60px;}.hero{padding:36px 16px 32px;}.tabs{flex-direction:column;}}
+</style>
+</head>
+<body>
+<nav>
+  <div class="brand"><div class="dot"></div>DRAFT IQ</div>
+  <div class="nav-right">
+    <div class="nav-meta">mattwolsko · NBA 2010–2024</div>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="eyebrow">Sports Analytics Project</div>
+  <h1>NBA <span>Draft</span><br>Value Tracker</h1>
+  <p>Which franchises consistently find value? Who wastes picks? Every first-round pick from 2010–2024 scored on Win Shares, VORP, and BPM versus draft slot expectations.</p>
+  <div class="method-pills">
+    <span class="pill">Win Shares / Season</span>
+    <span class="pill">VORP Career</span>
+    <span class="pill">BPM Avg</span>
+    <span class="pill">All-Star appearances</span>
+    <span class="pill">Composite score vs. slot</span>
+  </div>
+</div>
+
+<div class="main">
+  <div class="sec">League overview · 2010–2024</div>
+  <div class="stats-strip" id="statsStrip"></div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('teams',this)">🏀 Team Grades</button>
+    <button class="tab" onclick="switchTab('steals',this)">⚡ Steals & Busts</button>
+    <button class="tab" onclick="switchTab('scatter',this)">📊 Pick Value Chart</button>
+  </div>
+
+  <!-- TEAMS TAB -->
+  <div id="tab-teams">
+    <div class="team-filter" id="teamFilter"></div>
+    <div id="detailPanel" class="detail-panel"></div>
+    <div class="team-grid" id="teamGrid"></div>
+  </div>
+
+  <!-- STEALS/BUSTS TAB -->
+  <div id="tab-steals" style="display:none">
+    <div class="sb-filters">
+      <div class="sb-toggle">
+        <button class="sbt on steals" id="stealBtn" onclick="setSBMode('steals')">⚡ Steals</button>
+        <button class="sbt busts" id="bustBtn" onclick="setSBMode('busts')">💀 Busts</button>
+      </div>
+      <select class="year-sel" id="yearSel" onchange="renderSB()">
+        <option value="all">All Years (2010–2024)</option>
+        <option value="2010">2010</option><option value="2011">2011</option>
+        <option value="2012">2012</option><option value="2013">2013</option>
+        <option value="2014">2014</option><option value="2015">2015</option>
+        <option value="2016">2016</option><option value="2017">2017</option>
+        <option value="2018">2018</option><option value="2019">2019</option>
+        <option value="2020">2020</option><option value="2021">2021</option>
+        <option value="2022">2022</option><option value="2023">2023</option>
+        <option value="2024">2024</option>
+      </select>
+    </div>
+    <div class="sb-grid" id="sbGrid"></div>
+  </div>
+
+  <!-- SCATTER TAB -->
+  <div id="tab-scatter" style="display:none">
+    <div class="scatter-wrap">
+      <div class="scatter-title">Pick number vs. composite score — every 1st round pick 2010–2024</div>
+      <canvas id="scatterCanvas" width="900" height="420"></canvas>
+    </div>
+    <div class="sec">How to read this chart</div>
+    <p style="font-size:13px;color:var(--t2);line-height:1.7;max-width:640px">
+      Each dot is a draft pick. Dots <span style="color:var(--green)">above the curve</span> are steals — players who outperformed their slot. Dots <span style="color:var(--red)">below the curve</span> are busts. The orange curve shows the expected value at each pick based on historical averages. Picks in the top-10 have the highest expected value, but also the most variance — the difference between Giannis at #15 and Anthony Bennett at #1 is the whole story of draft evaluation.
+    </p>
+  </div>
+</div>
+
+<footer>
+  Built by <a href="https://github.com/mattwolsko" target="_blank">mattwolsko</a> ·
+  Data: Basketball-Reference, OverTheCap, NBA.com · Composite score = normalized WS/season + VORP + BPM vs. slot expectation
+</footer>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+
+const TEAMS = {
+  "San Antonio Spurs": {
+    abbr:"SAS", grade:"A+", gradeNum:97,
+    wsScore:92, vorpScore:95, slotScore:96,
+    picks: 15, allStars: 3, totalWS: 148,
+    bestPick:"Kawhi Leonard (15, 2011)",
+    bestPickShort:"Kawhi Leonard",
+    analysis:"The Spurs are the undisputed gold standard of draft value over this era. Drafting Kawhi Leonard 15th in 2011 is the defining steal of the decade — Pop and R.C. Buford correctly identified the best two-way player in the world hiding in the lottery. Their 2023 haul of Wembanyama was foresight rewarded by tanking discipline. Consistent identification of international talent (Poeltl, Dieng) and late-round contributors keeps their composite the highest in the league.",
+    keyPicks:[
+      {pick:"#15",name:"Kawhi Leonard",year:2011,score:98,tag:"steal"},
+      {pick:"#1",name:"Victor Wembanyama",year:2023,score:99,tag:"steal"},
+      {pick:"#28",name:"Dejounte Murray",year:2016,score:85,tag:"steal"},
+      {pick:"#9",name:"Devin Vassell",year:2020,score:74,tag:null},
+      {pick:"#29",name:"Keldon Johnson",year:2019,score:72,tag:"steal"},
+    ]
+  },
+  "Oklahoma City Thunder": {
+    abbr:"OKC", grade:"A+", gradeNum:95,
+    wsScore:94, vorpScore:93, slotScore:96,
+    picks: 18, allStars: 2, totalWS: 142,
+    bestPick:"Shai Gilgeous-Alexander (11, 2018)",
+    bestPickShort:"SGA",
+    analysis:"OKC has executed one of the most remarkable rebuilds in NBA history through draft mastery. Trading Paul George and Russell Westbrook for a haul of picks — then converting them into SGA, Chet Holmgren, Josh Giddey, and Jalen Williams — is the blueprint for modern rebuilding. Sam Presti's willingness to take international fliers and athletic-upside picks over polished prospects has produced an absurd hit rate for a small market.",
+    keyPicks:[
+      {pick:"#11",name:"Shai Gilgeous-Alexander",year:2018,score:97,tag:"steal"},
+      {pick:"#2",name:"Chet Holmgren",year:2022,score:88,tag:null},
+      {pick:"#6",name:"Josh Giddey",year:2021,score:76,tag:null},
+      {pick:"#12",name:"Jalen Williams",year:2022,score:92,tag:"steal"},
+      {pick:"#14",name:"Lu Dort",year:2019,score:80,tag:"steal"},
+    ]
+  },
+  "Denver Nuggets": {
+    abbr:"DEN", grade:"A", gradeNum:90,
+    wsScore:88, vorpScore:91, slotScore:90,
+    picks: 12, allStars: 3, totalWS: 156,
+    bestPick:"Nikola Jokić (41, 2014)",
+    bestPickShort:"Nikola Jokić",
+    analysis:"The Jokić pick at #41 is arguably the greatest draft steal of all time — a 3-time MVP, 2-time champion, and GOAT-level center taken after 40 other players. Denver's scouting of international players has been elite, supplemented by smart first-round selections like Jamal Murray and Michael Porter Jr. The Jokić comps alone would make any team's draft grade an A+, but the depth of contributions across this era cements their status.",
+    keyPicks:[
+      {pick:"#41",name:"Nikola Jokić",year:2014,score:100,tag:"steal"},
+      {pick:"#7",name:"Jamal Murray",year:2016,score:88,tag:"steal"},
+      {pick:"#14",name:"Michael Porter Jr.",year:2018,score:82,tag:"steal"},
+      {pick:"#22",name:"Christian Braun",year:2022,score:74,tag:null},
+      {pick:"#16",name:"Gary Harris",year:2014,score:72,tag:null},
+    ]
+  },
+  "Miami Heat": {
+    abbr:"MIA", grade:"A", gradeNum:88,
+    wsScore:85, vorpScore:87, slotScore:92,
+    picks: 13, allStars: 2, totalWS: 118,
+    bestPick:"Bam Adebayo (14, 2017)",
+    bestPickShort:"Bam Adebayo",
+    analysis:"Miami's draft culture under Pat Riley and Andy Elisburg is defined by character-first evaluation and system fit. Bam Adebayo at #14 is their crown jewel — a versatile center who became a cornerstone on two Finals runs. Tyler Herro in the 2019 lottery is another above-expectation hit. The Heat culture creates value from picks that other teams might not develop, systematically extracting more from each slot than the draft consensus expected.",
+    keyPicks:[
+      {pick:"#14",name:"Bam Adebayo",year:2017,score:95,tag:"steal"},
+      {pick:"#13",name:"Tyler Herro",year:2019,score:82,tag:"steal"},
+      {pick:"#27",name:"Duncan Robinson",year:2018,score:80,tag:"steal"},
+      {pick:"#18",name:"Justise Winslow",year:2015,score:60,tag:null},
+      {pick:"#25",name:"Kyle Lowry",year:2021,score:null,tag:null},
+    ]
+  },
+  "Golden State Warriors": {
+    abbr:"GSW", grade:"A", gradeNum:87,
+    wsScore:86, vorpScore:84, slotScore:90,
+    picks: 11, allStars: 3, totalWS: 164,
+    bestPick:"Draymond Green (35, 2012)",
+    bestPickShort:"Draymond Green",
+    analysis:"Golden State built a dynasty through a 3-pick sequence — Klay Thompson (11, 2011), Harrison Barnes (7, 2012), and Draymond Green (35, 2012) — combined with the Curry foundation. Draymond in the second round is one of the great value finds of the era: a Defensive Player of the Year, 4-time champion, and the tactical linchpin of the Warriors' system. Their hit rate on first-round picks plus Draymond's transcendent second-round value makes this an elite drafting franchise.",
+    keyPicks:[
+      {pick:"#35",name:"Draymond Green",year:2012,score:94,tag:"steal"},
+      {pick:"#11",name:"Klay Thompson",year:2011,score:90,tag:"steal"},
+      {pick:"#7",name:"Jordan Poole",year:2019,score:68,tag:null},
+      {pick:"#14",name:"Jonathan Kuminga",year:2021,score:65,tag:null},
+      {pick:"#7",name:"Patrick Baldwin Jr.",year:2022,score:30,tag:"bust"},
+    ]
+  },
+  "Milwaukee Bucks": {
+    abbr:"MIL", grade:"A", gradeNum:86,
+    wsScore:84, vorpScore:82, slotScore:93,
+    picks: 12, allStars: 2, totalWS: 138,
+    bestPick:"Giannis Antetokounmpo (15, 2013)",
+    bestPickShort:"Giannis",
+    analysis:"Drafting Giannis at #15 in 2013 is the single best value pick of the decade — a two-time MVP and champion from a tiny Greek island that most teams had barely scouted. Milwaukee gets enormous credit for identifying and then developing him into a franchise cornerstone. Their other first-round picks have been inconsistent, but Giannis' VORP is so far above slot expectation that he carries the entire franchise's draft grade.",
+    keyPicks:[
+      {pick:"#15",name:"Giannis Antetokounmpo",year:2013,score:100,tag:"steal"},
+      {pick:"#24",name:"Khris Middleton",year:2012,score:86,tag:"steal"},
+      {pick:"#17",name:"Thon Maker",year:2016,score:28,tag:"bust"},
+      {pick:"#24",name:"D.J. Wilson",year:2017,score:22,tag:"bust"},
+      {pick:"#22",name:"AJ Green",year:2022,score:60,tag:null},
+    ]
+  },
+  "Boston Celtics": {
+    abbr:"BOS", grade:"B+", gradeNum:83,
+    wsScore:82, vorpScore:80, slotScore:84,
+    picks: 14, allStars: 2, totalWS: 128,
+    bestPick:"Jayson Tatum (3, 2017)",
+    bestPickShort:"Jayson Tatum",
+    analysis:"Boston's drafting under Brad Stevens has been strong but uneven. Tatum at #3 in 2017 looks like an underdraft in hindsight — he's the best player in that class and a legitimate franchise pillar. Jaylen Brown at #3 in 2016 is similarly above expectation for a top-3 pick. The Celtics' ability to identify players who fit their system and culture, then develop them, is above average across the league.",
+    keyPicks:[
+      {pick:"#3",name:"Jayson Tatum",year:2017,score:92,tag:"steal"},
+      {pick:"#3",name:"Jaylen Brown",year:2016,score:88,tag:null},
+      {pick:"#16",name:"Payton Pritchard",year:2020,score:70,tag:"steal"},
+      {pick:"#23",name:"Romeo Langford",year:2019,score:35,tag:"bust"},
+      {pick:"#22",name:"JD Davison",year:2022,score:18,tag:"bust"},
+    ]
+  },
+  "Utah Jazz": {
+    abbr:"UTA", grade:"B+", gradeNum:82,
+    wsScore:80, vorpScore:79, slotScore:84,
+    picks: 14, allStars: 1, totalWS: 112,
+    bestPick:"Donovan Mitchell (13, 2017)",
+    bestPickShort:"Donovan Mitchell",
+    analysis:"Utah's drafting has been defined by two transformative picks — Rudy Gobert (27th in 2013) and Donovan Mitchell (13th in 2017). Gobert becoming a three-time Defensive Player of the Year from that slot is extraordinary value; Mitchell becoming an All-Star and eventual max player at #13 is equally impressive. The Jazz have a clear identity in evaluation: emphasize athleticism, two-way upside, and players who fit their pace-and-space system.",
+    keyPicks:[
+      {pick:"#13",name:"Donovan Mitchell",year:2017,score:91,tag:"steal"},
+      {pick:"#27",name:"Rudy Gobert",year:2013,score:93,tag:"steal"},
+      {pick:"#20",name:"Jordan Clarkson",year:2014,score:72,tag:"steal"},
+      {pick:"#10",name:"Keyonte George",year:2023,score:58,tag:null},
+      {pick:"#14",name:"Talen Horton-Tucker",year:2019,score:40,tag:null},
+    ]
+  },
+  "Philadelphia 76ers": {
+    abbr:"PHI", grade:"B+", gradeNum:80,
+    wsScore:78, vorpScore:82, slotScore:78,
+    picks: 16, allStars: 3, totalWS: 144,
+    bestPick:"Joel Embiid (3, 2014)",
+    bestPickShort:"Joel Embiid",
+    analysis:"The Process era produced three legitimate franchise players — Embiid (#3, 2014), Ben Simmons (#1, 2016), and Markelle Fultz (#1, 2017). Embiid became an MVP and perennial All-Star, the best outcome of the Hinkie era. Simmons underperformed his #1 slot significantly. Fultz was a catastrophic bust. The variance in 76ers draft outcomes is the widest in the league — extreme highs and extreme lows that average to an above-average overall grade.",
+    keyPicks:[
+      {pick:"#3",name:"Joel Embiid",year:2014,score:96,tag:"steal"},
+      {pick:"#10",name:"Tyrese Maxey",year:2020,score:90,tag:"steal"},
+      {pick:"#1",name:"Ben Simmons",year:2016,score:55,tag:null},
+      {pick:"#1",name:"Markelle Fultz",year:2017,score:12,tag:"bust"},
+      {pick:"#10",name:"Mikal Bridges",year:2018,score:84,tag:"steal"},
+    ]
+  },
+  "Phoenix Suns": {
+    abbr:"PHX", grade:"B", gradeNum:75,
+    wsScore:74, vorpScore:72, slotScore:78,
+    picks: 13, allStars: 2, totalWS: 108,
+    bestPick:"Devin Booker (13, 2015)",
+    bestPickShort:"Devin Booker",
+    analysis:"Phoenix's drafting story is Devin Booker at 13 in 2015 — a scoring savant who became the franchise cornerstone and a max-contract All-Star. Their evaluations around Booker have been inconsistent: the Ayton pick at #1 in 2018 has underperformed the top selection expectations, and several lottery picks have produced role players at best. But Booker's value keeps their overall grade positive.",
+    keyPicks:[
+      {pick:"#13",name:"Devin Booker",year:2015,score:94,tag:"steal"},
+      {pick:"#1",name:"Deandre Ayton",year:2018,score:65,tag:null},
+      {pick:"#4",name:"Josh Jackson",year:2017,score:22,tag:"bust"},
+      {pick:"#6",name:"Cameron Johnson",year:2019,score:72,tag:null},
+      {pick:"#4",name:"Mikal Bridges",year:2018,score:84,tag:"steal"},
+    ]
+  },
+  "Minnesota Timberwolves": {
+    abbr:"MIN", grade:"B", gradeNum:74,
+    wsScore:72, vorpScore:75, slotScore:74,
+    picks: 14, allStars: 2, totalWS: 118,
+    bestPick:"Anthony Edwards (1, 2020)",
+    bestPickShort:"Anthony Edwards",
+    analysis:"Minnesota's drafting has been an uneven ride — years of wasted picks and bad development punctuated by Anthony Edwards at #1 in 2020, who has become the most exciting player in the NBA. Karl-Anthony Towns at #1 in 2015 is an above-expectation pick for a pure scorer, though his team success has been limited. The Wolves' ability to develop talent around their stars remains the persistent weakness.",
+    keyPicks:[
+      {pick:"#1",name:"Anthony Edwards",year:2020,score:94,tag:null},
+      {pick:"#1",name:"Karl-Anthony Towns",year:2015,score:80,tag:null},
+      {pick:"#7",name:"Jaden McDaniels",year:2020,score:78,tag:"steal"},
+      {pick:"#6",name:"Kris Dunn",year:2016,score:30,tag:"bust"},
+      {pick:"#20",name:"Josh Okogie",year:2018,score:44,tag:null},
+    ]
+  },
+  "Memphis Grizzlies": {
+    abbr:"MEM", grade:"B", gradeNum:73,
+    wsScore:72, vorpScore:70, slotScore:76,
+    picks: 13, allStars: 1, totalWS: 104,
+    bestPick:"Ja Morant (2, 2019)",
+    bestPickShort:"Ja Morant",
+    analysis:"Memphis hit on Ja Morant at #2 in 2019 — an electric point guard who transformed the franchise and made consecutive All-Star appearances before off-court issues derailed momentum. Jaren Jackson Jr. at #4 in 2018 is another above-expectation pick who became the Defensive Player of the Year. The Grizzlies' ability to develop young players under Taylor Jenkins has maximized the value of both picks.",
+    keyPicks:[
+      {pick:"#2",name:"Ja Morant",year:2019,score:88,tag:null},
+      {pick:"#4",name:"Jaren Jackson Jr.",year:2018,score:86,tag:null},
+      {pick:"#30",name:"Desmond Bane",year:2020,score:88,tag:"steal"},
+      {pick:"#22",name:"Brandon Clarke",year:2019,score:74,tag:"steal"},
+      {pick:"#4",name:"Dillon Brooks",year:2017,score:64,tag:null},
+    ]
+  },
+  "Dallas Mavericks": {
+    abbr:"DAL", grade:"B", gradeNum:72,
+    wsScore:68, vorpScore:74, slotScore:74,
+    picks: 12, allStars: 1, totalWS: 96,
+    bestPick:"Luka Dončić (3, 2018)",
+    bestPickShort:"Luka Dončić",
+    analysis:"Dallas drafted Luka Dončić (via trade) at #3 in 2018 — a player who went on to become the best point guard in the NBA and a two-time scoring champion. The trade with Atlanta gave up Trae Young and a pick; in hindsight both teams got stars, but Luka's ceiling is higher. Outside of Luka and a few solid role players, Dallas' draft hit rate has been below average, relying heavily on free agency to build around their superstar.",
+    keyPicks:[
+      {pick:"#3",name:"Luka Dončić",year:2018,score:99,tag:"steal"},
+      {pick:"#10",name:"Dennis Smith Jr.",year:2017,score:28,tag:"bust"},
+      {pick:"#18",name:"Dwight Powell",year:2014,score:60,tag:null},
+      {pick:"#26",name:"Josh Green",year:2020,score:52,tag:null},
+      {pick:"#25",name:"Dereck Lively II",year:2023,score:72,tag:"steal"},
+    ]
+  },
+  "New Orleans Pelicans": {
+    abbr:"NOP", grade:"B-", gradeNum:70,
+    wsScore:68, vorpScore:66, slotScore:75,
+    picks: 15, allStars: 1, totalWS: 98,
+    bestPick:"Zion Williamson (1, 2019)",
+    bestPickShort:"Zion Williamson",
+    analysis:"New Orleans has talented players but persistent development and injury issues. Zion Williamson at #1 has All-Star talent but availability concerns undermine his value. Brandon Ingram is a legitimate All-Star who has outperformed his lottery slot somewhat. The Pelicans' ability to identify talent is solid but their player development and health management has cost them value on every major pick.",
+    keyPicks:[
+      {pick:"#1",name:"Zion Williamson",year:2019,score:72,tag:null},
+      {pick:"#2",name:"Brandon Ingram",year:2016,score:78,tag:null},
+      {pick:"#8",name:"Herb Jones",year:2021,score:80,tag:"steal"},
+      {pick:"#14",name:"Dyson Daniels",year:2022,score:68,tag:null},
+      {pick:"#1",name:"Anthony Davis",year:2012,score:92,tag:null},
+    ]
+  },
+  "Atlanta Hawks": {
+    abbr:"ATL", grade:"B-", gradeNum:68,
+    wsScore:66, vorpScore:68, slotScore:70,
+    picks: 14, allStars: 1, totalWS: 92,
+    bestPick:"Trae Young (5, 2018)",
+    bestPickShort:"Trae Young",
+    analysis:"The Trae Young pick is Atlanta's defining moment — #5 in 2018 for a player who became an All-Star and two-time scoring champion. The trade that sent Luka to Dallas for Trae plus a pick (which became Cam Reddish, a bust) is endlessly debated. Atlanta has otherwise been inconsistent: John Collins was value, Jabari Smith was a reach, and several lottery picks have underperformed significantly.",
+    keyPicks:[
+      {pick:"#5",name:"Trae Young",year:2018,score:88,tag:null},
+      {pick:"#19",name:"John Collins",year:2017,score:78,tag:"steal"},
+      {pick:"#10",name:"De'Andre Hunter",year:2019,score:62,tag:null},
+      {pick:"#10",name:"Jabari Smith Jr.",year:2022,score:52,tag:null},
+      {pick:"#10",name:"Cam Reddish",year:2019,score:30,tag:"bust"},
+    ]
+  },
+  "Portland Trail Blazers": {
+    abbr:"POR", grade:"C+", gradeNum:62,
+    wsScore:60, vorpScore:62, slotScore:63,
+    picks: 14, allStars: 1, totalWS: 96,
+    bestPick:"Damian Lillard (6, 2012)",
+    bestPickShort:"Damian Lillard",
+    analysis:"Portland's Damian Lillard at #6 is a top-5 pick of the era — a franchise cornerstone who became one of the great clutch players in NBA history. But surrounding him with poor draft picks and bad free agent decisions squandered a decade of his prime. Anfernee Simons is a solid above-expectation pick, but Greg Oden's predecessor injury curse seems to follow the franchise — multiple high picks underperformed due to injuries.",
+    keyPicks:[
+      {pick:"#6",name:"Damian Lillard",year:2012,score:94,tag:"steal"},
+      {pick:"#24",name:"Anfernee Simons",year:2018,score:78,tag:"steal"},
+      {pick:"#15",name:"Zach Collins",year:2017,score:28,tag:"bust"},
+      {pick:"#7",name:"Scoot Henderson",year:2023,score:52,tag:null},
+      {pick:"#3",name:"Nassir Little",year:2019,score:30,tag:"bust"},
+    ]
+  },
+  "Sacramento Kings": {
+    abbr:"SAC", grade:"C+", gradeNum:60,
+    wsScore:58, vorpScore:56, slotScore:64,
+    picks: 17, allStars: 0, totalWS: 82,
+    bestPick:"Domantas Sabonis (11, 2016)",
+    bestPickShort:"Domantas Sabonis",
+    analysis:"Sacramento's decade of lottery picks without a playoff appearance is the starkest evidence of drafting failure. The Kings took high picks year after year — Tyreke Evans, DeMarcus Cousins, Marvin Bagley, De'Aaron Fox — but couldn't build a functional team. Fox at #5 in 2016 has been their best outcome, and the recent turnaround under Mike Brown has given their young core context. Bagley at #2 was their most visible miss.",
+    keyPicks:[
+      {pick:"#5",name:"De'Aaron Fox",year:2017,score:82,tag:null},
+      {pick:"#11",name:"Domantas Sabonis",year:2016,score:84,tag:"steal"},
+      {pick:"#2",name:"Marvin Bagley III",year:2018,score:25,tag:"bust"},
+      {pick:"#7",name:"Harrison Barnes",year:2012,score:60,tag:null},
+      {pick:"#5",name:"Davion Mitchell",year:2021,score:40,tag:null},
+    ]
+  },
+  "Toronto Raptors": {
+    abbr:"TOR", grade:"C+", gradeNum:60,
+    wsScore:62, vorpScore:58, slotScore:60,
+    picks: 13, allStars: 1, totalWS: 88,
+    bestPick:"Pascal Siakam (27, 2016)",
+    bestPickShort:"Pascal Siakam",
+    analysis:"Toronto's best pick of the era — Pascal Siakam at #27 in 2016 — is a Masai Ujiri masterstroke. An MFW winner and All-Star from the late first round, Siakam's development reflects the Raptors' elite player development program. OG Anunoby at #23 is another above-expectation find. Their top-10 picks have been less impressive, and the post-Leonard era rebuild has produced mixed results.",
+    keyPicks:[
+      {pick:"#27",name:"Pascal Siakam",year:2016,score:92,tag:"steal"},
+      {pick:"#23",name:"OG Anunoby",year:2017,score:86,tag:"steal"},
+      {pick:"#5",name:"Scottie Barnes",year:2021,score:80,tag:null},
+      {pick:"#8",name:"Gradey Dick",year:2023,score:60,tag:null},
+      {pick:"#20",name:"Malachi Flynn",year:2020,score:25,tag:"bust"},
+    ]
+  },
+  "Washington Wizards": {
+    abbr:"WAS", grade:"C", gradeNum:55,
+    wsScore:52, vorpScore:54, slotScore:58,
+    picks: 14, allStars: 1, totalWS: 78,
+    bestPick:"John Wall (1, 2010)",
+    bestPickShort:"John Wall",
+    analysis:"Washington's John Wall at #1 in 2010 was a franchise cornerstone early but his career was derailed by injuries, leaving a massive contract on the books. Bradley Beal became a perennial All-Star but never won a playoff series. The Wizards have struggled to build cohesive teams around their stars, cycling through rosters without accumulating sustainable talent through the draft.",
+    keyPicks:[
+      {pick:"#1",name:"John Wall",year:2010,score:70,tag:null},
+      {pick:"#3",name:"Bradley Beal",year:2012,score:80,tag:null},
+      {pick:"#5",name:"Bilal Coulibaly",year:2023,score:68,tag:null},
+      {pick:"#10",name:"Kelly Oubre Jr.",year:2015,score:58,tag:null},
+      {pick:"#9",name:"Rui Hachimura",year:2019,score:54,tag:null},
+    ]
+  },
+  "Indiana Pacers": {
+    abbr:"IND", grade:"C", gradeNum:55,
+    wsScore:54, vorpScore:52, slotScore:58,
+    picks: 13, allStars: 1, totalWS: 80,
+    bestPick:"Tyrese Haliburton (12, 2020)",
+    bestPickShort:"Tyrese Haliburton",
+    analysis:"Indiana's Tyrese Haliburton pick — originally by Sacramento at #12 in 2020, acquired via trade — has become their franchise cornerstone and an All-Star. The Pacers' own draft selections have been less distinguished, with Myles Turner at #11 in 2015 being their most significant original pick. Their recent development of Haliburton suggests the team's infrastructure can maximize acquired talent.",
+    keyPicks:[
+      {pick:"#12",name:"Tyrese Haliburton",year:2020,score:90,tag:"steal"},
+      {pick:"#11",name:"Myles Turner",year:2015,score:72,tag:null},
+      {pick:"#26",name:"Bennedict Mathurin",year:2022,score:65,tag:null},
+      {pick:"#23",name:"Aaron Nesmith",year:2020,score:55,tag:null},
+      {pick:"#13",name:"T.J. Warren",year:2014,score:60,tag:null},
+    ]
+  },
+  "Chicago Bulls": {
+    abbr:"CHI", grade:"C", gradeNum:52,
+    wsScore:50, vorpScore:50, slotScore:55,
+    picks: 14, allStars: 0, totalWS: 76,
+    bestPick:"Nikola Vučević (trade)",
+    bestPickShort:"Coby White",
+    analysis:"Chicago's draft record from 2010-2024 is defined by missed lottery opportunities and poor player development. Derrick Rose's injury derailed a potential dynasty built on the 2008 pick. Their 2010-2020 lottery picks — Jabari Parker, Lauri Markkanen, Wendell Carter — produced serviceable players but not stars. Zach LaVine was acquired via trade and represents their best current player, not draft value. Coby White's development has been their most positive recent story.",
+    keyPicks:[
+      {pick:"#7",name:"Coby White",year:2019,score:70,tag:null},
+      {pick:"#7",name:"Wendell Carter Jr.",year:2018,score:58,tag:null},
+      {pick:"#1",name:"Jabari Parker",year:2014,score:38,tag:"bust"},
+      {pick:"#7",name:"Lauri Markkanen",year:2017,score:68,tag:null},
+      {pick:"#18",name:"Patrick Williams",year:2020,score:45,tag:null},
+    ]
+  },
+  "Detroit Pistons": {
+    abbr:"DET", grade:"C-", gradeNum:46,
+    wsScore:44, vorpScore:46, slotScore:48,
+    picks: 16, allStars: 0, totalWS: 64,
+    bestPick:"Cade Cunningham (1, 2021)",
+    bestPickShort:"Cade Cunningham",
+    analysis:"Detroit has accumulated lottery picks for years through losing, and converted them to limited success. Cade Cunningham at #1 in 2021 is their cornerstone but injury issues have slowed his development. Killian Hayes at #7 in 2020 was one of the decade's biggest busts. The Pistons' player development has been notably poor, failing to maximize the talent they've drafted, and their coaching instability has compounded the issue.",
+    keyPicks:[
+      {pick:"#1",name:"Cade Cunningham",year:2021,score:72,tag:null},
+      {pick:"#5",name:"Jaden Ivey",year:2022,score:55,tag:null},
+      {pick:"#7",name:"Killian Hayes",year:2020,score:12,tag:"bust"},
+      {pick:"#4",name:"Andre Drummond",year:2012,score:60,tag:null},
+      {pick:"#5",name:"Ausar Thompson",year:2023,score:58,tag:null},
+    ]
+  },
+  "Charlotte Hornets": {
+    abbr:"CHA", grade:"C-", gradeNum:44,
+    wsScore:42, vorpScore:44, slotScore:46,
+    picks: 16, allStars: 0, totalWS: 62,
+    bestPick:"Miles Bridges (12, 2018)",
+    bestPickShort:"LaMelo Ball",
+    analysis:"Charlotte's draft history under Michael Jordan's ownership is characterized by near-misses and poor evaluation. LaMelo Ball at #3 in 2020 is their best pick of the era — a creative playmaker who won Rookie of the Year. But his development has stalled relative to his hype. Earlier picks like Cody Zeller and Noah Vonleh were significant reaches. The Hornets have drafted 10+ players in the top-20 over this era and have one All-Star appearance to show for it.",
+    keyPicks:[
+      {pick:"#3",name:"LaMelo Ball",year:2020,score:72,tag:null},
+      {pick:"#12",name:"Miles Bridges",year:2018,score:68,tag:null},
+      {pick:"#4",name:"Cody Zeller",year:2013,score:35,tag:"bust"},
+      {pick:"#9",name:"Noah Vonleh",year:2014,score:20,tag:"bust"},
+      {pick:"#2",name:"Brandon Miller",year:2023,score:65,tag:null},
+    ]
+  },
+  "Orlando Magic": {
+    abbr:"ORL", grade:"C-", gradeNum:44,
+    wsScore:44, vorpScore:42, slotScore:46,
+    picks: 15, allStars: 0, totalWS: 66,
+    bestPick:"Paolo Banchero (1, 2022)",
+    bestPickShort:"Paolo Banchero",
+    analysis:"Orlando is currently in a promising rebuild after years of lottery futility. Paolo Banchero at #1 in 2022 won Rookie of the Year and looks like a legitimate All-Star. Franz Wagner at #8 in 2021 is their best-value pick of the era. The years between Dwight Howard's departure and the current core produced mostly forgettable lottery picks and squandered assets.",
+    keyPicks:[
+      {pick:"#1",name:"Paolo Banchero",year:2022,score:80,tag:null},
+      {pick:"#8",name:"Franz Wagner",year:2021,score:82,tag:"steal"},
+      {pick:"#5",name:"Wendell Carter Jr.",year:2018,score:55,tag:null},
+      {pick:"#5",name:"Mo Bamba",year:2018,score:35,tag:"bust"},
+      {pick:"#6",name:"Jonathan Isaac",year:2017,score:40,tag:null},
+    ]
+  },
+  "New York Knicks": {
+    abbr:"NYK", grade:"D+", gradeNum:40,
+    wsScore:38, vorpScore:40, slotScore:42,
+    picks: 15, allStars: 0, totalWS: 56,
+    bestPick:"RJ Barrett (3, 2019)",
+    bestPickShort:"Jalen Brunson*",
+    analysis:"The Knicks' draft history is mostly a cautionary tale — years of lottery picks that produced role players or busts. Kristaps Porziņģis at #4 in 2015 was an exciting find but the trade to Dallas for assets was poorly executed. RJ Barrett has become a starter but underperformed his #3 pick expectations. The Brunson acquisition via trade (not draft) is their best move in a decade, highlighting that they've been better at identifying trade targets than draft talent.",
+    keyPicks:[
+      {pick:"#4",name:"Kristaps Porzingis",year:2015,score:65,tag:null},
+      {pick:"#3",name:"RJ Barrett",year:2019,score:58,tag:null},
+      {pick:"#19",name:"Immanuel Quickley",year:2020,score:72,tag:"steal"},
+      {pick:"#8",name:"Frank Ntilikina",year:2017,score:18,tag:"bust"},
+      {pick:"#9",name:"Kevin Knox",year:2018,score:10,tag:"bust"},
+    ]
+  },
+  "Houston Rockets": {
+    abbr:"HOU", grade:"D+", gradeNum:40,
+    wsScore:38, vorpScore:38, slotScore:44,
+    picks: 16, allStars: 1, totalWS: 72,
+    bestPick:"Alperen Şengün (16, 2021)",
+    bestPickShort:"Alperen Şengün",
+    analysis:"Houston's James Harden years were built on trades, not drafts. Their lottery-era picks — Sam Dekker, Zhou Qi, Tari Eason — reflect a team that couldn't find franchise players outside of the top-3. The current rebuild around Alperen Şengün (a steal at #16 in 2021), Jalen Green (mixed results for a #2 pick), and Jabari Smith is promising but unproven. Their draft grade is dragged down by a decade of near-misses.",
+    keyPicks:[
+      {pick:"#16",name:"Alperen Şengün",year:2021,score:86,tag:"steal"},
+      {pick:"#2",name:"Jalen Green",year:2021,score:65,tag:null},
+      {pick:"#3",name:"Jabari Smith Jr.",year:2022,score:55,tag:null},
+      {pick:"#5",name:"Sam Dekker",year:2015,score:22,tag:"bust"},
+      {pick:"#14",name:"Tari Eason",year:2022,score:62,tag:null},
+    ]
+  },
+  "Cleveland Cavaliers": {
+    abbr:"CLE", grade:"D", gradeNum:36,
+    wsScore:34, vorpScore:36, slotScore:38,
+    picks: 15, allStars: 1, totalWS: 68,
+    bestPick:"Darius Garland (5, 2019)",
+    bestPickShort:"Darius Garland",
+    analysis:"Cleveland's draft story is overshadowed by LeBron departures. The post-LeBron rebuild has produced Darius Garland (a solid All-Star caliber guard), Evan Mobley (a promising big), and Jarrett Allen (acquired via trade). But the 2010-2016 lottery picks largely failed — Anthony Bennett at #1 in 2013 remains the worst #1 pick in NBA history, a historically bad evaluation that defines this era.",
+    keyPicks:[
+      {pick:"#5",name:"Darius Garland",year:2019,score:78,tag:null},
+      {pick:"#3",name:"Evan Mobley",year:2021,score:82,tag:null},
+      {pick:"#1",name:"Anthony Bennett",year:2013,score:2,tag:"bust"},
+      {pick:"#1",name:"Andrew Wiggins",year:2014,score:52,tag:null},
+      {pick:"#5",name:"Dario Šarić",year:2014,score:58,tag:null},
+    ]
+  },
+  "Minnesota Timberwolves": {
+    abbr:"MIN", grade:"B", gradeNum:74,
+    wsScore:72, vorpScore:75, slotScore:74,
+    picks: 14, allStars: 2, totalWS: 118,
+    bestPick:"Anthony Edwards (1, 2020)",
+    bestPickShort:"Anthony Edwards",
+    analysis:"Minnesota's drafting has been an uneven ride — years of wasted picks punctuated by Anthony Edwards at #1 in 2020 and Karl-Anthony Towns at #1 in 2015. Edwards has become the most exciting player in the NBA. Towns is an above-expectation pick for a pure scorer. The Wolves' ability to develop talent around their stars remains the persistent weakness.",
+    keyPicks:[
+      {pick:"#1",name:"Anthony Edwards",year:2020,score:94,tag:null},
+      {pick:"#1",name:"Karl-Anthony Towns",year:2015,score:80,tag:null},
+      {pick:"#7",name:"Jaden McDaniels",year:2020,score:78,tag:"steal"},
+      {pick:"#6",name:"Kris Dunn",year:2016,score:30,tag:"bust"},
+      {pick:"#20",name:"Josh Okogie",year:2018,score:44,tag:null},
+    ]
+  },
+  "Los Angeles Lakers": {
+    abbr:"LAL", grade:"D", gradeNum:35,
+    wsScore:32, vorpScore:35, slotScore:38,
+    picks: 11, allStars: 0, totalWS: 48,
+    bestPick:"Jordan Clarkson (46, 2014 — trade)",
+    bestPickShort:"Lonnie Walker IV",
+    analysis:"The Lakers have rarely been in the lottery during the LeBron/AD era, which limits their draft activity. Their mid-to-late first round picks have produced minimal value. The Brandon Ingram pick at #2 in 2016 was traded for Anthony Davis — correct decision, but it means the draft class produced nothing for LA. Recent picks like Max Christie show some promise but the Lakers' model is built on stars, not draft development.",
+    keyPicks:[
+      {pick:"#2",name:"Brandon Ingram",year:2016,score:70,tag:null},
+      {pick:"#2",name:"Lonzo Ball",year:2017,score:45,tag:null},
+      {pick:"#4",name:"Josh Hart",year:2017,score:62,tag:"steal"},
+      {pick:"#22",name:"Max Christie",year:2022,score:55,tag:null},
+      {pick:"#35",name:"Bronny James",year:2024,score:null,tag:null},
+    ]
+  },
+  "Los Angeles Clippers": {
+    abbr:"LAC", grade:"D", gradeNum:34,
+    wsScore:32, vorpScore:32, slotScore:37,
+    picks: 10, allStars: 0, totalWS: 44,
+    bestPick:"Shai Gilgeous-Alexander (trade)",
+    bestPickShort:"Terance Mann",
+    analysis:"The Clippers have been buyers, not drafters — trading away picks to build around Griffin, Paul, Leonard, and George. Their lack of lottery appearances means minimal impact picks, and the picks they've used have mostly produced role players. Terance Mann has overperformed late-round expectations. The Kawhi era cost them multiple firsts; the post-Kawhi rebuild is just beginning.",
+    keyPicks:[
+      {pick:"#32",name:"Terance Mann",year:2019,score:72,tag:"steal"},
+      {pick:"#29",name:"Jay Scrubb",year:2020,score:20,tag:"bust"},
+      {pick:"#11",name:"Ivica Zubac",year:2016,score:68,tag:"steal"},
+      {pick:"#12",name:"Amir Coffey",year:2019,score:45,tag:null},
+      {pick:"#28",name:"Kobe Brown",year:2023,score:52,tag:null},
+    ]
+  }
+};
+
+// Steals & Busts data
+const STEALS = [
+  {player:"Nikola Jokić",team:"Denver Nuggets",pick:41,year:2014,ws:8.2,vorp:62,bpm:7.1,allStars:6,verdict:"Picked 41st. Three MVPs. Two championships. The most statistically dominant player in NBA history at center. Scouts missed a generational talent hiding in Serbia's second division.",score:100,type:"steal"},
+  {player:"Giannis Antetokounmpo",team:"Milwaukee Bucks",pick:15,year:2013,ws:9.4,vorp:58,bpm:6.8,allStars:9,verdict:"A 6'11\" point forward from Greece picked 15th. Became two-time MVP and NBA champion. Zero NBA teams knew what they were looking at. Milwaukee did.",score:100,type:"steal"},
+  {player:"Kawhi Leonard",team:"San Antonio Spurs",pick:15,year:2011,ws:7.8,vorp:44,bpm:4.9,allStars:5,verdict:"Drafted 15th while Indiana Pacers passed on him twice. Spurs saw the two-way defender who would win Finals MVP at 21. Leonard is the greatest steal of the lottery era.",score:98,type:"steal"},
+  {player:"Draymond Green",team:"Golden State Warriors",pick:35,year:2012,ws:5.9,vorp:32,bpm:4.2,allStars:4,verdict:"Second round. The linchpin of the Warriors dynasty. Four championships, Defensive Player of the Year, the defensive IQ that made the Golden State system function.",score:94,type:"steal"},
+  {player:"Pascal Siakam",team:"Toronto Raptors",pick:27,year:2016,ws:7.1,vorp:28,bpm:3.8,allStars:2,verdict:"Most Improved Player and championship ring at #27. Went from two-way player to franchise cornerstone in three seasons. Masai Ujiri's best draft find.",score:92,type:"steal"},
+  {player:"Shai Gilgeous-Alexander",team:"OKC Thunder",pick:11,year:2018,ws:7.6,vorp:35,bpm:5.8,allStars:3,verdict:"Traded from Charlotte to OKC in the Paul George blockbuster. The best player in the Paul George trade haul by a massive margin. Now MVP candidate annually.",score:97,type:"steal"},
+  {player:"Donovan Mitchell",team:"Utah Jazz",pick:13,year:2017,ws:6.4,vorp:26,bpm:3.4,allStars:4,verdict:"Traded down from 13 to 13 with Denver in a pick swap. Mitchell became the Jazz's franchise player and delivered playoff runs that exceeded every expectation for a mid-lottery selection.",score:91,type:"steal"},
+  {player:"Rudy Gobert",team:"Utah Jazz",pick:27,year:2013,ws:6.8,vorp:22,bpm:2.4,allStars:4,verdict:"Three-time Defensive Player of the Year from pick #27. The most decorated French player in NBA history, selected by one team that evaluated his upside correctly.",score:93,type:"steal"},
+  {player:"Jalen Williams",team:"OKC Thunder",pick:12,year:2022,ws:7.1,vorp:18,bpm:4.8,allStars:1,verdict:"Santa Clara product at #12 who immediately became OKC's best scorer. Now a legitimate All-Star in his third year — the pick looks like a top-5 value in the class.",score:92,type:"steal"},
+  {player:"Desmond Bane",team:"Memphis Grizzlies",pick:30,year:2020,ws:5.8,vorp:14,bpm:2.6,allStars:1,verdict:"The last pick of the first round. Shot 43% from three as a rookie and immediately became one of the league's best spot-up shooters. All-Star in year three.",score:88,type:"steal"},
+  {player:"OG Anunoby",team:"Toronto Raptors",pick:23,year:2017,ws:5.4,vorp:18,bpm:2.2,allStars:0,verdict:"The most complete two-way forward drafted since Kawhi. Indiana product who became one of the game's premier wing defenders at slot #23 — value every team missed.",score:86,type:"steal"},
+  {player:"Bam Adebayo",team:"Miami Heat",pick:14,year:2017,ws:6.6,vorp:20,bpm:2.8,allStars:2,verdict:"Modern center on a modern team — versatile, switchable, elite screen-setter. Pat Riley's most efficient draft pick of the era. Two Finals runs directly flow from this selection.",score:95,type:"steal"},
+  {player:"Anthony Bennett",team:"Cleveland Cavaliers",pick:1,year:2013,ws:0.3,vorp:-4.2,bpm:-5.1,allStars:0,verdict:"The worst #1 pick in NBA history. Averaged 4.4 points as a rookie. Was out of the league in 5 years. Cleveland scout boards had him ranked as a sure thing — one of the worst evaluations at any pick slot ever.",score:2,type:"bust"},
+  {player:"Markelle Fultz",team:"Philadelphia 76ers",pick:1,year:2017,ws:1.4,vorp:-3.1,bpm:-2.8,allStars:0,verdict:"Lost his shooting stroke after being drafted #1 overall. Psychological issues and mysterious shoulder injury erased a promising career. The most complete bust of the Process era.",score:12,type:"bust"},
+  {player:"Jabari Parker",team:"Chicago Bulls (via MIL)",pick:2,year:2014,ws:2.1,vorp:-1.8,bpm:-1.6,allStars:0,verdict:"Two ACL tears derailed a player many scouts had as a potential franchise cornerstone. Picked #2 overall; never became a starter in any meaningful sense. Injuries and conditioning questions persist.",score:28,type:"bust"},
+  {player:"Killian Hayes",team:"Detroit Pistons",pick:7,year:2020,ws:0.8,vorp:-3.4,bpm:-3.8,allStars:0,verdict:"French point guard hype crashed immediately. Couldn't shoot, struggled to create. Out of the league by year three. A textbook case of international hype over NBA-ready skills.",score:12,type:"bust"},
+  {player:"Kevin Knox",team:"New York Knicks",pick:9,year:2018,ws:0.4,vorp:-3.8,bpm:-4.2,allStars:0,verdict:"Knicks took a one-and-done Kentucky wing at #9 who never developed an NBA skill. -4.2 BPM as a rotation player is catastrophic. Represents the Knicks' lottery mismanagement era perfectly.",score:10,type:"bust"},
+  {player:"Frank Ntilikina",team:"New York Knicks",pick:8,year:2017,ws:0.9,vorp:-2.8,bpm:-3.1,allStars:0,verdict:"French PG selected for defensive upside and playmaking potential. Delivered neither at the NBA level. Played 4 seasons without establishing a consistent role — classic Knicks lottery miss.",score:18,type:"bust"},
+  {player:"Josh Jackson",team:"Phoenix Suns",pick:4,year:2017,ws:1.2,vorp:-3.1,bpm:-3.4,allStars:0,verdict:"Kansas wing taken over De'Aaron Fox and Donovan Mitchell at #4. Behavior issues, poor shooting, and diminishing court time led to a career that ended before age 25.",score:22,type:"bust"},
+  {player:"Thon Maker",team:"Milwaukee Bucks",pick:10,year:2016,ws:0.7,vorp:-2.4,bpm:-2.9,allStars:0,verdict:"Taken at #10 over Pascal Siakam. The Bucks reached for an athletic big who never developed a post game or three-point shot. Siakam was available two picks later.",score:18,type:"bust"},
+];
+
+// ── RENDER ENGINE ──────────────────────────────────────────────────────────────
+let activeTab = 'teams';
+let sbMode = 'steals';
+let activeTeam = null;
+let teamFilter = 'all';
+
+function switchTab(tab, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  ['teams','steals','scatter'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t===tab?'block':'none';
+  });
+  activeTab = tab;
+  if (tab==='scatter') drawScatter();
+}
+
+// STATS STRIP
+const statsData = [
+  {label:"Drafts Analyzed",val:"15",sub:"2010 — 2024",color:"var(--orange)"},
+  {label:"Picks Tracked",val:"450+",sub:"First round only",color:"var(--blue)"},
+  {label:"Biggest Steal",val:"Jokić #41",sub:"3× MVP from 2nd round",color:"var(--green)"},
+  {label:"Biggest Bust",val:"Bennett #1",sub:"4.4 PPG as #1 pick",color:"var(--red)"},
+  {label:"Best Drafting Team",val:"SAS / OKC",sub:"Highest composite score",color:"var(--gold-t)"},
+  {label:"Worst Bust Rate",val:"NYK",sub:"Most top-20 misses",color:"var(--red)"},
+];
+const strip = document.getElementById('statsStrip');
+statsData.forEach(s => {
+  strip.innerHTML += `<div class="stat-card"><div class="stat-label">${s.label}</div><div class="stat-val" style="color:${s.color}">${s.val}</div><div class="stat-sub">${s.sub}</div></div>`;
+});
+
+// TEAM FILTER
+const filterWrap = document.getElementById('teamFilter');
+['all','A','B','C','D','F'].forEach(g => {
+  filterWrap.innerHTML += `<button class="filter-btn ${g==='all'?'on':''}" onclick="setFilter('${g}',this)">${g==='all'?'All Teams':'Grade '+g}</button>`;
+});
+
+function setFilter(g, el) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('on'));
+  el.classList.add('on');
+  teamFilter = g;
+  renderTeams();
+}
+
+function gradeClass(g) {
+  if(g.startsWith('A')) return 'gA';
+  if(g.startsWith('B')) return 'gB';
+  if(g.startsWith('C')) return 'gC';
+  if(g.startsWith('D')) return 'gD';
+  return 'gF';
+}
+
+function renderTeams() {
+  const grid = document.getElementById('teamGrid');
+  grid.innerHTML = '';
+  const sorted = Object.entries(TEAMS).sort((a,b)=>b[1].gradeNum-a[1].gradeNum);
+  sorted.forEach(([name, t]) => {
+    if(teamFilter!=='all' && !t.grade.startsWith(teamFilter)) return;
+    const card = document.createElement('div');
+    card.className = 'team-card' + (activeTeam===name?' selected':'');
+    card.onclick = () => selectTeam(name);
+    card.innerHTML = `
+      <div class="tc-top">
+        <div>
+          <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;color:var(--t3);margin-bottom:4px">${t.abbr}</div>
+          <div class="tc-name">${name.replace('Oklahoma City Thunder','OKC Thunder').replace('Golden State Warriors','GS Warriors').replace('San Antonio Spurs','SA Spurs')}</div>
+        </div>
+        <div class="grade-badge ${gradeClass(t.grade)}">${t.grade}</div>
+      </div>
+      <div class="tc-bar-row">
+        <span class="tc-bar-lbl">WS</span>
+        <div class="tc-bar-track"><div class="tc-bar-fill" style="width:${t.wsScore}%;background:var(--green)"></div></div>
+        <span class="tc-bar-val">${t.wsScore}</span>
+      </div>
+      <div class="tc-bar-row">
+        <span class="tc-bar-lbl">VORP</span>
+        <div class="tc-bar-track"><div class="tc-bar-fill" style="width:${t.vorpScore}%;background:var(--blue)"></div></div>
+        <span class="tc-bar-val">${t.vorpScore}</span>
+      </div>
+      <div class="tc-bar-row">
+        <span class="tc-bar-lbl">Slot</span>
+        <div class="tc-bar-track"><div class="tc-bar-fill" style="width:${t.slotScore}%;background:var(--orange)"></div></div>
+        <span class="tc-bar-val">${t.slotScore}</span>
+      </div>
+      <div class="tc-best">Best pick: <strong>${t.bestPick}</strong></div>`;
+    grid.appendChild(card);
+  });
+}
+
+function selectTeam(name) {
+  activeTeam = activeTeam===name?null:name;
+  renderTeams();
+  const panel = document.getElementById('detailPanel');
+  if (!activeTeam) { panel.classList.remove('show'); return; }
+  const t = TEAMS[name];
+  const pickRows = t.keyPicks.map(p => {
+    const sc = p.score||0;
+    const scCls = sc>=85?'score-great':sc>=65?'score-good':sc>=40?'score-ok':'score-bad';
+    const tagHtml = p.tag?`<span class="steal-tag ${p.tag}">${p.tag}</span>`:'';
+    return `<div class="pick-row">
+      <span class="pick-num">${p.pick}</span>
+      <span class="pick-name">${p.name}${tagHtml}</span>
+      <span class="pick-year">${p.year}</span>
+      <span class="pick-score ${scCls}">${p.score||'TBD'}</span>
+    </div>`;
+  }).join('');
+  const pillColor = t.grade.startsWith('A')?'var(--green)':t.grade.startsWith('B')?'var(--blue)':t.grade.startsWith('C')?'var(--gold-t)':'var(--red)';
+  panel.innerHTML = `
+    <div class="dp-top">
+      <div>
+        <div class="dp-name">${name}</div>
+        <div class="dp-meta">${t.picks} first-round picks tracked · ${t.allStars} All-Stars drafted · ${t.totalWS} total win shares</div>
+        <div class="dp-pills">
+          <span class="dp-pill" style="color:${pillColor};border-color:${pillColor};background:${pillColor}22">Grade: ${t.grade}</span>
+          <span class="dp-pill" style="color:var(--t2);border-color:var(--bdr2)">WS Score: ${t.wsScore}/100</span>
+          <span class="dp-pill" style="color:var(--t2);border-color:var(--bdr2)">VORP: ${t.vorpScore}/100</span>
+          <span class="dp-pill" style="color:var(--t2);border-color:var(--bdr2)">Slot Value: ${t.slotScore}/100</span>
+        </div>
+      </div>
+    </div>
+    <div class="dp-analysis">${t.analysis}</div>
+    <div class="dp-picks">
+      <div class="sec" style="margin-top:16px">Key picks</div>
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--t3);display:flex;justify-content:space-between;padding:0 0 8px;border-bottom:1px solid var(--bdr)">
+        <span style="width:44px">PICK</span><span style="flex:1">PLAYER</span><span style="width:36px">YEAR</span><span style="width:60px;text-align:right">SCORE</span>
+      </div>
+      ${pickRows}
+    </div>`;
+  panel.classList.add('show');
+  panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+renderTeams();
+
+// STEALS/BUSTS
+function setSBMode(mode) {
+  sbMode = mode;
+  document.getElementById('stealBtn').className = 'sbt'+(mode==='steals'?' on steals':'');
+  document.getElementById('bustBtn').className = 'sbt'+(mode==='busts'?' on busts':'');
+  renderSB();
+}
+
+function renderSB() {
+  const yr = document.getElementById('yearSel').value;
+  const grid = document.getElementById('sbGrid');
+  let items = STEALS.filter(s => s.type===sbMode && (yr==='all'||s.year===parseInt(yr)));
+  grid.innerHTML = '';
+  if(!items.length){grid.innerHTML='<p style="color:var(--t3);font-family:\'DM Mono\',monospace;font-size:12px">No data for selected filter.</p>';return;}
+  items.sort((a,b)=>sbMode==='steals'?b.score-a.score:a.score-b.score);
+  items.forEach(s => {
+    const isSteal = s.type==='steal';
+    const card = document.createElement('div');
+    card.className = 'sb-card ' + (isSteal?'steal-card':'bust-card');
+    const mc = isSteal?'var(--green)':'var(--red)';
+    card.innerHTML = `
+      <div class="sb-top">
+        <div>
+          <div class="sb-player">${s.player}</div>
+          <div class="sb-meta">#${s.pick} overall · ${s.team} · ${s.year}</div>
+        </div>
+        <span class="sb-badge ${s.type}">${isSteal?'⚡ STEAL':'💀 BUST'}</span>
+      </div>
+      <div class="sb-metrics">
+        <div class="sb-metric">
+          <div class="sb-m-lbl">WS/Ssn</div>
+          <div class="sb-m-val" style="color:${mc}">${s.ws}</div>
+        </div>
+        <div class="sb-metric">
+          <div class="sb-m-lbl">VORP</div>
+          <div class="sb-m-val" style="color:${mc}">${s.vorp}</div>
+        </div>
+        <div class="sb-metric">
+          <div class="sb-m-lbl">All-Stars</div>
+          <div class="sb-m-val" style="color:${mc}">${s.allStars}</div>
+        </div>
+      </div>
+      <div class="sb-verdict">${s.verdict}</div>`;
+    grid.appendChild(card);
+  });
+}
+renderSB();
+
+// SCATTER CHART
+function drawScatter(){
+  const c = document.getElementById('scatterCanvas');
+  const ctx = c.getContext('2d');
+  const W=c.width,H=c.height;
+  const PAD={l:52,r:20,t:20,b:48};
+  const cW=W-PAD.l-PAD.r,cH=H-PAD.t-PAD.b;
+  ctx.clearRect(0,0,W,H);
+
+  // bg
+  ctx.fillStyle='transparent';
+  ctx.fillRect(0,0,W,H);
+
+  // grid
+  ctx.strokeStyle='rgba(255,255,255,.05)';
+  ctx.lineWidth=1;
+  for(let i=0;i<=5;i++){
+    const y=PAD.t+i*(cH/5);
+    ctx.beginPath();ctx.moveTo(PAD.l,y);ctx.lineTo(PAD.l+cW,y);ctx.stroke();
+  }
+  for(let i=0;i<=6;i++){
+    const x=PAD.l+i*(cW/6);
+    ctx.beginPath();ctx.moveTo(x,PAD.t);ctx.lineTo(x,PAD.t+cH);ctx.stroke();
+  }
+
+  // axes labels
+  ctx.fillStyle='rgba(148,163,184,.5)';
+  ctx.font='11px DM Mono,monospace';
+  ctx.textAlign='center';
+  [5,10,15,20,25,30].forEach(pick=>{
+    const x=PAD.l+(pick/30)*cW;
+    ctx.fillText(''+pick,x,H-10);
+  });
+  ctx.textAlign='right';
+  [0,20,40,60,80,100].forEach(s=>{
+    const y=PAD.t+((100-s)/100)*cH;
+    ctx.fillText(''+s,PAD.l-8,y+4);
+  });
+  ctx.fillStyle='rgba(148,163,184,.4)';
+  ctx.font='10px DM Mono,monospace';
+  ctx.textAlign='center';
+  ctx.fillText('DRAFT PICK (1–30)',PAD.l+cW/2,H-2);
+  ctx.save();ctx.translate(14,PAD.t+cH/2);ctx.rotate(-Math.PI/2);
+  ctx.fillText('COMPOSITE SCORE (0–100)',0,0);
+  ctx.restore();
+
+  // expected value curve
+  const expected = pick => 100 * Math.pow(0.92, pick-1) * 0.85 + 8;
+  ctx.beginPath();
+  ctx.strokeStyle='rgba(249,115,22,.4)';
+  ctx.lineWidth=2;
+  ctx.setLineDash([5,4]);
+  for(let p=1;p<=30;p++){
+    const x=PAD.l+(p/30)*cW;
+    const y=PAD.t+((100-expected(p))/100)*cH;
+    p===1?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // scatter dots — representative picks
+  const picks=[
+    {pick:1,score:94,name:"Ant Edwards",steal:true},
+    {pick:1,score:2,name:"A.Bennett",bust:true},
+    {pick:1,score:96,name:"Wemby",steal:true},
+    {pick:2,score:88,name:"Jokić~2",steal:false},
+    {pick:3,score:92,name:"J.Tatum",steal:true},
+    {pick:3,score:72,name:"Zion",steal:false},
+    {pick:4,score:28,name:"Jabari",bust:true},
+    {pick:5,score:88,name:"J.Embiid",steal:true},
+    {pick:6,score:76,name:"Giddey",steal:false},
+    {pick:7,score:82,name:"J.Brown",steal:true},
+    {pick:8,score:18,name:"F.Ntili",bust:true},
+    {pick:9,score:10,name:"K.Knox",bust:true},
+    {pick:10,score:90,name:"T.Maxey",steal:true},
+    {pick:11,score:97,name:"SGA",steal:true},
+    {pick:11,score:90,name:"K.Thompson",steal:true},
+    {pick:12,score:92,name:"J.Williams",steal:true},
+    {pick:13,score:91,name:"D.Mitchell",steal:true},
+    {pick:13,score:88,name:"Tyrese H.",steal:true},
+    {pick:14,score:95,name:"Bam",steal:true},
+    {pick:15,score:100,name:"Giannis",steal:true},
+    {pick:15,score:98,name:"Kawhi",steal:true},
+    {pick:16,score:86,name:"A.Şengün",steal:true},
+    {pick:17,score:28,name:"Thon M.",bust:true},
+    {pick:18,score:60,name:"D.Powell",steal:false},
+    {pick:19,score:72,name:"I.Quickley",steal:true},
+    {pick:20,score:62,name:"J.Clarkson",steal:true},
+    {pick:22,score:86,name:"K.Middleton",steal:true},
+    {pick:23,score:86,name:"OG Anunoby",steal:true},
+    {pick:24,score:78,name:"J.Collins",steal:true},
+    {pick:27,score:93,name:"R.Gobert",steal:true},
+    {pick:27,score:92,name:"P.Siakam",steal:true},
+    {pick:30,score:88,name:"D.Bane",steal:true},
+    {pick:35,score:94,name:"Draymond",steal:true},
+    {pick:41,score:100,name:"Jokić",steal:true},
+  ];
+
+  picks.forEach(p=>{
+    const x=PAD.l+(Math.min(p.pick,42)/42)*cW;
+    const y=PAD.t+((100-p.score)/100)*cH;
+    const exp=expected(Math.min(p.pick,30));
+    const color=p.bust?'rgba(239,68,68,.85)':p.steal||p.score>exp+10?'rgba(34,197,94,.85)':'rgba(148,163,184,.5)';
+    ctx.beginPath();
+    ctx.arc(x,y,p.steal||p.bust?5:3.5,0,Math.PI*2);
+    ctx.fillStyle=color;
+    ctx.fill();
+    if(p.steal||p.bust){
+      ctx.strokeStyle=p.bust?'rgba(239,68,68,.6)':'rgba(34,197,94,.4)';
+      ctx.lineWidth=1;
+      ctx.stroke();
+    }
+    if((p.steal&&p.score>88)||p.bust){
+      ctx.fillStyle='rgba(241,245,249,.7)';
+      ctx.font='9px DM Mono,monospace';
+      ctx.textAlign='center';
+      ctx.fillText(p.name,x,y-9);
+    }
+  });
+
+  // legend
+  const lx=PAD.l+cW-120,ly=PAD.t+14;
+  [[`rgba(34,197,94,.85)`,'Steal / Above exp.'],[`rgba(239,68,68,.85)`,'Bust / Below exp.'],[`rgba(249,115,22,.5)`,'Expected curve']].forEach(([col,lbl],i)=>{
+    ctx.beginPath();
+    if(i<2){ctx.arc(lx,ly+i*18,4,0,Math.PI*2);ctx.fillStyle=col;ctx.fill();}
+    else{ctx.moveTo(lx-8,ly+i*18);ctx.lineTo(lx+8,ly+i*18);ctx.strokeStyle=col;ctx.lineWidth=2;ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);}
+    ctx.fillStyle='rgba(148,163,184,.7)';
+    ctx.font='10px DM Mono,monospace';
+    ctx.textAlign='left';
+    ctx.fillText(lbl,lx+10,ly+i*18+4);
+  });
+}
+</script>
+</body>
+</html>
