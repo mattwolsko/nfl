@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NFL Cap Intelligence · mattwolsko</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --green:#00a651; --green-dim:rgba(0,166,81,.1); --green-b:rgba(0,166,81,.3);
+    --red:#e63946; --gold:#f4c430; --gold-t:#b8900a;
+    --bg:#0d1117; --bg2:#161b22; --bg3:#21262d;
+    --bdr:rgba(255,255,255,.08); --bdr2:rgba(255,255,255,.14);
+    --t:#e6edf3; --t2:#8b949e; --t3:#484f58;
+  }
+  html,body{background:var(--bg);color:var(--t);font-family:'DM Sans',sans-serif;min-height:100vh;}
+  body{background-image:radial-gradient(ellipse 80% 50% at 50% -20%,rgba(0,166,81,.07) 0%,transparent 70%),repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(255,255,255,.015) 40px),repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(255,255,255,.015) 40px);}
+  nav{position:sticky;top:0;z-index:100;background:rgba(13,17,23,.88);backdrop-filter:blur(12px);border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;padding:0 32px;height:56px;}
+  .brand{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;display:flex;align-items:center;gap:10px;}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  .nav-meta{font-family:'DM Mono',monospace;font-size:11px;color:var(--t3);letter-spacing:1px;}
+  .hero{text-align:center;padding:60px 24px 44px;max-width:680px;margin:0 auto;}
+  .eyebrow{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--green);margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .eyebrow::before,.eyebrow::after{content:'';width:28px;height:1px;background:var(--green);opacity:.4;}
+  h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(50px,9vw,84px);letter-spacing:4px;line-height:.92;margin-bottom:14px;}
+  h1 span{color:var(--green);}
+  .hero p{font-size:15px;color:var(--t2);line-height:1.7;max-width:460px;margin:0 auto;}
+  .main{max-width:960px;margin:0 auto;padding:0 24px 80px;}
+  .sec-lbl{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2.5px;text-transform:uppercase;color:var(--t3);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+  .sec-lbl::after{content:'';flex:1;height:1px;background:var(--bdr);}
+  .team-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:6px;margin-bottom:36px;}
+  .tbtn{background:var(--bg2);border:1px solid var(--bdr);border-radius:8px;padding:9px 4px;cursor:pointer;font-size:11px;font-family:'DM Mono',monospace;font-weight:500;color:var(--t2);transition:all .15s;text-align:center;letter-spacing:.5px;}
+  .tbtn:hover{border-color:var(--green-b);color:var(--t);background:var(--green-dim);}
+  .tbtn.active{background:var(--green);border-color:var(--green);color:#fff;box-shadow:0 0 14px rgba(0,166,81,.35);}
+  .results{min-height:280px;}
+  .empty{text-align:center;padding:80px 20px;color:var(--t3);}
+  .empty .ei{font-size:46px;margin-bottom:12px;opacity:.25;}
+  .empty p{font-size:14px;}
+  .team-hero{background:linear-gradient(135deg,rgba(0,166,81,.09) 0%,var(--bg2) 60%);border:1px solid rgba(0,166,81,.2);border-radius:14px;padding:22px 26px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;}
+  .t-name{font-family:'Bebas Neue',sans-serif;font-size:38px;letter-spacing:3px;line-height:1;}
+  .tags{display:flex;gap:7px;margin-top:8px;flex-wrap:wrap;}
+  .tag{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;padding:4px 10px;border-radius:20px;border:1px solid;}
+  .tg{background:var(--green-dim);color:var(--green);border-color:var(--green-b);}
+  .tb{background:rgba(55,138,221,.1);color:#5aa8e8;border-color:rgba(55,138,221,.28);}
+  .to{background:rgba(244,196,48,.1);color:var(--gold-t);border-color:rgba(244,196,48,.28);}
+  .verdict{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;padding:7px 16px;border-radius:24px;border:1px solid;}
+  .vg{background:var(--green-dim);color:var(--green);border-color:var(--green-b);}
+  .vm{background:rgba(244,196,48,.1);color:var(--gold-t);border-color:rgba(244,196,48,.28);}
+  .vb{background:rgba(230,57,70,.1);color:var(--red);border-color:rgba(230,57,70,.28);}
+  .mgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:10px;margin-bottom:14px;}
+  .mc{background:var(--bg2);border:1px solid var(--bdr);border-radius:10px;padding:16px 18px;}
+  .ml{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:8px;}
+  .mv{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:1px;line-height:1;}
+  .ms{font-size:11px;color:var(--t2);margin-top:5px;}
+  .sec{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--t3);margin:22px 0 11px;display:flex;align-items:center;gap:10px;}
+  .sec::after{content:'';flex:1;height:1px;background:var(--bdr);}
+  .eff-labels{display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:10px;color:var(--t3);}
+  .eff-track{height:16px;background:var(--bg3);border-radius:8px;overflow:hidden;margin:7px 0;}
+  .eff-fill{height:100%;background:linear-gradient(90deg,#00a651,#00c96b);border-radius:8px;transition:width .9s cubic-bezier(.16,1,.3,1);}
+  .pos-bars{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;}
+  .pos-row{display:flex;align-items:center;gap:10px;}
+  .pl{font-family:'DM Mono',monospace;font-size:11px;font-weight:500;color:var(--t2);width:40px;flex-shrink:0;}
+  .pt{flex:1;height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;}
+  .pb{height:100%;border-radius:4px;transition:width .7s cubic-bezier(.16,1,.3,1);}
+  .pa{font-family:'DM Mono',monospace;font-size:11px;color:var(--t2);width:54px;text-align:right;flex-shrink:0;}
+  .dvf{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+  .dc{background:var(--bg2);border:1px solid var(--bdr);border-radius:10px;padding:16px 18px;}
+  .dl{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:8px;}
+  .dn{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:1px;line-height:1;}
+  .dn.green{color:var(--green);} .dn.red{color:var(--red);} .dn.gold{color:var(--gold-t);}
+  .ds{font-size:11px;color:var(--t2);margin-top:6px;}
+  .strat{background:var(--bg2);border:1px solid var(--bdr);border-radius:8px;padding:12px 16px;font-size:12px;color:var(--t2);margin-bottom:14px;line-height:1.6;}
+  .dead-list{background:var(--bg2);border:1px solid var(--bdr);border-radius:10px;overflow:hidden;margin-bottom:14px;}
+  .dr{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--bdr);}
+  .dr:last-child{border-bottom:none;}
+  .dn2{font-size:13px;font-weight:500;color:var(--t);}
+  .drr{font-size:11px;color:var(--t3);margin-top:2px;}
+  .da{font-family:'DM Mono',monospace;font-size:12px;color:var(--red);}
+  .abox{background:var(--bg2);border:1px solid var(--bdr);border-left:3px solid var(--green);border-radius:0 10px 10px 0;padding:18px 20px;margin-bottom:14px;}
+  .abox h3{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;margin-bottom:10px;}
+  .abox p{font-size:13px;line-height:1.7;color:var(--t2);margin-bottom:8px;}
+  .abox p:last-child{margin-bottom:0;}
+  .kl{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:4px;}
+  .kl.g{color:var(--green);} .kl.r{color:var(--red);}
+  footer{text-align:center;padding:28px 24px;border-top:1px solid var(--bdr);font-family:'DM Mono',monospace;font-size:11px;color:var(--t3);letter-spacing:.5px;line-height:1.9;}
+  footer a{color:var(--green);text-decoration:none;}
+  footer a:hover{text-decoration:underline;}
+  @media(max-width:600px){nav{padding:0 16px;}.main{padding:0 16px 60px;}.hero{padding:40px 16px 32px;}.dvf{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<nav>
+  <div class="brand"><div class="dot"></div>CAP INTELLIGENCE</div>
+  <div class="nav-meta">mattwolsko · 2024 NFL SEASON</div>
+</nav>
+<div class="hero">
+  <div class="eyebrow">Sports Analytics Project</div>
+  <h1>NFL <span>Cap</span><br>Intelligence</h1>
+  <p>Salary cap efficiency analysis for all 32 NFL teams. Click any team to instantly explore their spending, dead money, draft vs. free agent strategy, and overall value for money in the 2024 season.</p>
+</div>
+<div class="main">
+  <div class="sec-lbl">Select a team</div>
+  <div class="team-grid" id="tg"></div>
+  <div class="results" id="results">
+    <div class="empty"><div class="ei">🏈</div><p>Pick a team above to load their cap breakdown</p></div>
+  </div>
+</div>
+<footer>
+  Built by <a href="https://github.com/mattwolsko" target="_blank">mattwolsko</a> ·
+  Data: 2024 NFL regular season · Sources: OverTheCap, Spotrac, Pro Football Reference ·
+  Verify figures at <a href="https://overthecap.com" target="_blank">OverTheCap</a>
+</footer>
+
+<script>
+const PC = {QB:'#e63946',WR:'#f4a261',OL:'#2a9d8f',DL:'#457b9d',LB:'#6a4c93',DB:'#00a651',Other:'#666'};
+
+const DATA = {
+  KC: {
+    team:"Kansas City Chiefs",abbr:"KC",totalCap:"$247M",capRank:15,wins:15,losses:2,
+    costPerWin:"$16.5M",efficiencyScore:82,efficiencyVerdict:"elite",
+    positionBreakdown:[
+      {pos:"QB",pct:14,amount:"$35M",note:"Mahomes' efficient deal structure"},
+      {pos:"WR",pct:13,amount:"$32M",note:"Rice, Kelce headline skilled group"},
+      {pos:"OL",pct:15,amount:"$37M",note:"Strong investment pays dividends"},
+      {pos:"DL",pct:12,amount:"$30M",note:"Jones anchors deep rotation"},
+      {pos:"LB",pct:11,amount:"$27M",note:"Bolton emerging on rookie deal"},
+      {pos:"DB",pct:14,amount:"$35M",note:"Sneed, McDuffie solid starters"},
+      {pos:"Other",pct:21,amount:"$51M",note:"RB, ST, misc. contracts"}
+    ],
+    deadCap:{total:"$12M",rank:28,players:[
+      {name:"Jerick McKinnon",amount:"$4.2M",reason:"cut"},
+      {name:"Justin Watson",amount:"$3.8M",reason:"restructure"},
+      {name:"Mecole Hardman",amount:"$4.0M",reason:"cut"}
+    ]},
+    draftVsFA:{draftInvestment:"$148M",faInvestment:"$99M",draftPct:60,faPct:40,
+      topDraftContrib:"Patrick Mahomes, QB",topFAContrib:"Marquise Brown, WR",
+      strategy:"draft-heavy",strategyNote:"Built around drafted core, selective FA spending"},
+    analystTake:"The Chiefs are the gold standard of cap efficiency — 15 wins on a mid-tier payroll is exceptional. Mahomes' contract, while massive in absolute terms, remains team-friendly relative to his production. Andy Reid's scheme minimizes the need for high-priced skill positions.",
+    keyStrength:"Mahomes' contract is still below market rate for his production tier.",
+    keyRisk:"Aging skill players and limited draft capital could thin the roster by 2026."
+  },
+  PHI: {
+    team:"Philadelphia Eagles",abbr:"PHI",totalCap:"$255M",capRank:5,wins:14,losses:3,
+    costPerWin:"$18.2M",efficiencyScore:78,efficiencyVerdict:"good",
+    positionBreakdown:[
+      {pos:"QB",pct:16,amount:"$41M",note:"Hurts' extension front-loaded"},
+      {pos:"WR",pct:14,amount:"$36M",note:"Brown, Smith elite duo"},
+      {pos:"OL",pct:18,amount:"$46M",note:"Highest-paid line in NFL"},
+      {pos:"DL",pct:13,amount:"$33M",note:"Sweat, Davis headline unit"},
+      {pos:"LB",pct:9,amount:"$23M",note:"Nakobe Dean on rookie deal"},
+      {pos:"DB",pct:11,amount:"$28M",note:"Slay extension pricey but worth it"},
+      {pos:"Other",pct:19,amount:"$48M",note:"TE, RB, ST spending"}
+    ],
+    deadCap:{total:"$22M",rank:18,players:[
+      {name:"Zach Ertz",amount:"$8.5M",reason:"restructure"},
+      {name:"James Bradberry",amount:"$7.2M",reason:"cut"},
+      {name:"Isaac Seumalo",amount:"$6.3M",reason:"cut"}
+    ]},
+    draftVsFA:{draftInvestment:"$140M",faInvestment:"$115M",draftPct:55,faPct:45,
+      topDraftContrib:"Jalen Hurts, QB",topFAContrib:"Bryce Huff, EDGE",
+      strategy:"balanced",strategyNote:"Howie Roseman balances elite draft hits with targeted FA"},
+    analystTake:"Philadelphia's Super Bowl run validated their cap approach — investing heavily in the offensive line while keeping Hurts on a manageable deal was the blueprint. Howie Roseman's restructuring wizardry keeps them competitive despite a bloated roster.",
+    keyStrength:"Dominant OL investment creates a multiplier effect for every offensive player.",
+    keyRisk:"Multiple dead cap hits coming in 2025-26 from restructured deals could create a crunch."
+  },
+  DET: {
+    team:"Detroit Lions",abbr:"DET",totalCap:"$241M",capRank:22,wins:15,losses:2,
+    costPerWin:"$16.1M",efficiencyScore:88,efficiencyVerdict:"elite",
+    positionBreakdown:[
+      {pos:"QB",pct:12,amount:"$29M",note:"Goff bargain contract huge advantage"},
+      {pos:"WR",pct:14,amount:"$34M",note:"St. Brown extension well-structured"},
+      {pos:"OL",pct:17,amount:"$41M",note:"Sewell anchors top-5 line"},
+      {pos:"DL",pct:13,amount:"$31M",note:"Hutchinson before injury, depth"},
+      {pos:"LB",pct:10,amount:"$24M",note:"Campbell's scheme maximizes value"},
+      {pos:"DB",pct:12,amount:"$29M",note:"Kerby Joseph emerging on rookie deal"},
+      {pos:"Other",pct:22,amount:"$53M",note:"RBTE, depth, special teams"}
+    ],
+    deadCap:{total:"$9M",rank:30,players:[
+      {name:"Jameson Williams",amount:"$3.8M",reason:"restructure"},
+      {name:"Charles Harris",amount:"$3.2M",reason:"cut"},
+      {name:"Michael Brockers",amount:"$2.0M",reason:"cut"}
+    ]},
+    draftVsFA:{draftInvestment:"$169M",faInvestment:"$72M",draftPct:70,faPct:30,
+      topDraftContrib:"Amon-Ra St. Brown, WR",topFAContrib:"Za'Darius Smith, EDGE",
+      strategy:"draft-heavy",strategyNote:"Built entirely through the draft, minimal FA reliance"},
+    analystTake:"Detroit is the best value team in the NFL — 15 wins on a bottom-10 payroll is historic efficiency. Jared Goff's bargain contract is the cornerstone: they're getting top-5 QB play at mid-tier QB money. Brad Holmes' drafting has produced elite starters at every level.",
+    keyStrength:"Goff contract is the most team-friendly deal for a winning QB in the league.",
+    keyRisk:"Hutchinson injury exposed thin edge depth; re-signing core players will spike payroll in 2025."
+  },
+  BUF: {
+    team:"Buffalo Bills",abbr:"BUF",totalCap:"$252M",capRank:8,wins:13,losses:4,
+    costPerWin:"$19.4M",efficiencyScore:72,efficiencyVerdict:"good",
+    positionBreakdown:[
+      {pos:"QB",pct:18,amount:"$45M",note:"Allen's massive extension dominates"},
+      {pos:"WR",pct:9,amount:"$23M",note:"Diggs trade left thin group"},
+      {pos:"OL",pct:14,amount:"$35M",note:"Daboll-era line still developing"},
+      {pos:"DL",pct:13,amount:"$33M",note:"Ed Oliver solid anchor"},
+      {pos:"LB",pct:11,amount:"$28M",note:"Tremaine Edmunds departed"},
+      {pos:"DB",pct:14,amount:"$35M",note:"Hyde, Poyer both expensive"},
+      {pos:"Other",pct:21,amount:"$53M",note:"TE Kincaid, RB Cook spending"}
+    ],
+    deadCap:{total:"$38M",rank:8,players:[
+      {name:"Stefon Diggs",amount:"$31M",reason:"trade"},
+      {name:"Von Miller",amount:"$4.5M",reason:"cut"},
+      {name:"Mitch Morse",amount:"$2.5M",reason:"cut"}
+    ]},
+    draftVsFA:{draftInvestment:"$126M",faInvestment:"$126M",draftPct:50,faPct:50,
+      topDraftContrib:"Josh Allen, QB",topFAContrib:"Dion Dawkins, OL",
+      strategy:"balanced",strategyNote:"Allen's deal eats cap; balanced roster construction elsewhere"},
+    analystTake:"Buffalo's $38M dead cap from the Diggs trade is a significant drag, but Josh Allen's performance means they're competitive regardless. The Bills are a quarterback-driven team in every sense — Allen's efficiency masks roster deficiencies at receiver.",
+    keyStrength:"Josh Allen's two-way impact as a runner makes his cap hit more efficient than peers.",
+    keyRisk:"Diggs' dead money plus aging secondary creates a tight 2025 offseason window."
+  },
+  BAL: {
+    team:"Baltimore Ravens",abbr:"BAL",totalCap:"$257M",capRank:4,wins:12,losses:5,
+    costPerWin:"$21.4M",efficiencyScore:70,efficiencyVerdict:"good",
+    positionBreakdown:[
+      {pos:"QB",pct:17,amount:"$44M",note:"Lamar's historic extension signed"},
+      {pos:"WR",pct:11,amount:"$28M",note:"Zay Flowers emerging cheaply"},
+      {pos:"OL",pct:14,amount:"$36M",note:"Ronnie Stanley anchor, injury risk"},
+      {pos:"DL",pct:14,amount:"$36M",note:"Odafe Oweh, Roquan Smith top spends"},
+      {pos:"LB",pct:12,amount:"$31M",note:"Smith's $100M deal highest at LB"},
+      {pos:"DB",pct:12,amount:"$31M",note:"Hamilton extension excellent value"},
+      {pos:"Other",pct:20,amount:"$51M",note:"Henry RB deal, TE, ST"}
+    ],
+    deadCap:{total:"$16M",rank:24,players:[
+      {name:"Marcus Peters",amount:"$6.8M",reason:"cut"},
+      {name:"Jason Peters",amount:"$5.4M",reason:"cut"},
+      {name:"Jadeveon Clowney",amount:"$3.8M",reason:"cut"}
+    ]},
+    draftVsFA:{draftInvestment:"$154M",faInvestment:"$103M",draftPct:60,faPct:40,
+      topDraftContrib:"Lamar Jackson, QB",topFAContrib:"Derrick Henry, RB",
+      strategy:"draft-heavy",strategyNote:"Built around drafted Lamar; Henry FA splash proved worth it"},
+    analystTake:"The Ravens get elite QB play from Lamar while his cap hit, though high, buys a dual-threat weapon no defense can replicate. Derrick Henry's one-year deal was the best value free agent signing in the league — transformed the offense at minimal cost.",
+    keyStrength:"Henry's cheap one-year deal added a dimension that multiplied the entire offense.",
+    keyRisk:"Lamar's full contract kicks in heavier by 2026; OL injury history is a recurring concern."
+  },
+  MIN: {
+    team:"Minnesota Vikings",abbr:"MIN",totalCap:"$253M",capRank:7,wins:14,losses:3,
+    costPerWin:"$18.1M",efficiencyScore:76,efficiencyVerdict:"good",
+    positionBreakdown:[
+      {pos:"QB",pct:15,amount:"$38M",note:"Sam Darnold outperformed contract"},
+      {pos:"WR",pct:16,amount:"$40M",note:"Jefferson's max deal dominates"},
+      {pos:"OL",pct:14,amount:"$35M",note:"O'Neill, Darrisaw solid anchors"},
+      {pos:"DL",pct:12,amount:"$30M",note:"Hunter extension well-earned"},
+      {pos:"LB",pct:10,amount:"$25M",note:"Van Noy veteran presence"},
+      {pos:"DB",pct:13,amount:"$33M",note:"Bynum, Watts secondary starters"},
+      {pos:"Other",pct:20,amount:"$52M",note:"TE Hockenson, Cook, ST"}
+    ],
+    deadCap:{total:"$18M",rank:22,players:[
+      {name:"Kirk Cousins",amount:"$11M",reason:"trade"},
+      {name:"Za'Darius Smith",amount:"$4.2M",reason:"cut"},
+      {name:"Jordan Hicks",amount:"$2.8M",reason:"cut"}
+    ]},
+    draftVsFA:{draftInvestment:"$152M",faInvestment:"$101M",draftPct:60,faPct:40,
+      topDraftContrib:"Justin Jefferson, WR",topFAContrib:"Aaron Jones, RB",
+      strategy:"balanced",strategyNote:"Darnold's bargain deal subsidized Jefferson's mega extension"},
+    analystTake:"Minnesota's 14-win season on a mid-range payroll is remarkable, driven entirely by Sam Darnold's value deal exceeding all expectations. Jefferson is the best WR in football and his contract reflects it — the Vikings are riding a perfect storm of cheap QB play.",
+    keyStrength:"Darnold's cheap deal created $25M+ in cap space that funded the supporting cast.",
+    keyRisk:"JJ McCarthy takes over in 2025; if Darnold magic disappears, this roster needs a real QB deal."
+  },
+  WSH: {
+    team:"Washington Commanders",abbr:"WSH",totalCap:"$243M",capRank:19,wins:12,losses:5,
+    costPerWin:"$20.3M",efficiencyScore:73,efficiencyVerdict:"good",
+    positionBreakdown:[
+      {pos:"QB",pct:13,amount:"$32M",note:"Daniels rookie deal is transformative"},
+      {pos:"WR",pct:13,amount:"$32M",note:"McLaurin anchor, thin depth"},
+      {pos:"OL",pct:15,amount:"$36M",note:"Charles Turner addition upgraded line"},
+      {pos:"DL",pct:14,amount:"$34M",note:"Sweat traded away, cap savings"},
+      {pos:"LB",pct:11,amount:"$27M",note:"Barrington junior emerging"},
+      {pos:"DB",pct:13,amount:"$32M",note:"Lattimore adds $18M 2025 hit"},
+      {pos:"Other",pct:21,amount:"$50M",note:"TE, RB, ST, misc."}
+    ],
+    deadCap:{total:"$14M",rank:26,players:[
+      {name:"Sam Howell",amount:"$5.6M",reason:"cut"},
+      {name:"Emmanuel Forbes",amount:"$4.8M",reason:"restructure"},
+      {name:"Bobby Wagner",amount:"$3.6M",reason:"cut"}
+    ]},
+    draftVsFA:{draftInvestment:"$146M",faInvestment:"$97M",draftPct:60,faPct:40,
+      topDraftContrib:"Jayden Daniels, QB",topFAContrib:"Marshon Lattimore, CB",
+      strategy:"balanced",strategyNote:"Daniels rookie deal enables aggressive roster building"},
+    analystTake:"Washington's turnaround is entirely Jayden Daniels — a Heisman-level rookie on a $4M deal is the ultimate cap cheat code. The Lattimore trade adds talent but at a premium cost; the Commanders are wisely leveraging their cheap QB window before the extension clock runs.",
+    keyStrength:"Daniels' rookie contract gives Washington 3 more years of massive cap flexibility.",
+    keyRisk:"Lattimore's $18M hit in 2025 and secondary depth concerns could hamper defensive continuity."
+  },
+  GB: {
+    team:"Green Bay Packers",abbr:"GB",totalCap:"$238M",capRank:25,wins:11,losses:6,
+    costPerWin:"$21.6M",efficiencyScore:66,efficiencyVerdict:"average",
+    positionBreakdown:[
+      {pos:"QB",pct:14,amount:"$33M",note:"Love's extension front-loaded"},
+      {pos:"WR",pct:14,amount:"$33M",note:"Watson, Doubs growing cheaply"},
+      {pos:"OL",pct:15,amount:"$36M",note:"Bakhtiari injury haunts cap"},
+      {pos:"DL",pct:13,amount:"$31M",note:"Kenny Clark anchor on big deal"},
+      {pos:"LB",pct:11,amount:"$26M",note:"De'Vondre Campbell restructured"},
+      {pos:"DB",pct:12,amount:"$29M",note:"Alexander extension top-of-market"},
+      {pos:"Other",pct:21,amount:"$50M",note:"Dillon, Musgrave, ST spending"}
+    ],
+    deadCap:{total:"$31M",rank:11,players:[
+      {name:"David Bakhtiari",amount:"$15M",reason:"injury/cut"},
+      {name:"Aaron Jones",amount:"$9.5M",reason:"cut"},
+      {name:"Randall Cobb",amount:"$6.5M",reason:"retirement"}
+    ]},
+    draftVsFA:{draftInvestment:"$167M",faInvestment:"$71M",draftPct:70,faPct:30,
+      topDraftContrib:"Jordan Love, QB",topFAContrib:"Josh Myers, OL",
+      strategy:"draft-heavy",strategyNote:"Green Bay's identity is draft-and-develop; minimal FA splash"},
+    analystTake:"Green Bay's $31M dead cap — led by Bakhtiari's prolonged injury saga — dragged efficiency down despite Love's impressive development. The Packers are structurally sound but transitional; Love proved he can win without Adams, which is the key discovery of 2024.",
+    keyStrength:"Jordan Love's cost-controlled deal gives the Packers a franchise window before the extension hits.",
+    keyRisk:"Bakhtiari's dead money clears but OL depth and pass rush remain thin heading into 2025."
+  },
+  LAC: {
+    team:"LA Chargers",abbr:"LAC",totalCap:"$244M",capRank:18,wins:11,losses:6,
+    costPerWin:"$22.2M",efficiencyScore:68,efficiencyVerdict:"average",
+    positionBreakdown:[
+      {pos:"QB",pct:16,amount:"$39M",note:"Herbert's extension now kicking in"},
+      {pos:"WR",pct:10,amount:"$24M",note:"Allen, McConkey young cheap duo"},
+      {pos:"OL",pct:14,amount:"$34M",note:"Slater, Zion anchor expensive line"},
+      {pos:"DL",pct:15,amount:"$37M",note:"Bosa, Mack dead cap haunts team"},
+      {pos:"LB",pct:10,amount:"$24M",note:"Kenneth Murray costly mistake"},
+      {pos:"DB",pct:14,amount:"$34M",note:"Asante Samuel Jr. bright spot"},
+      {pos:"Other",pct:21,amount:"$52M",note:"RB, TE, league minimum spending"}
+    ],
+    deadCap:{total:"$29M",rank:13,players:[
+      {name:"Joey Bosa",amount:"$14M",reason:"cut"},
+      {name:"Khalil Mack",amount:"$9.5M",reason:"restructure"},
+      {name:"Keenan Allen",amount:"$5.5M",reason:"trade"}
+    ]},
+    draftVsFA:{draftInvestment:"$134M",faInvestment:"$110M",draftPct:55,faPct:45,
+      topDraftContrib:"Justin Herbert, QB",topFAContrib:"Derwin James Jr., S (ext.)",
+      strategy:"balanced",strategyNote:"Herbert-centric build; FA missteps at edge haunt books"},
+    analystTake:"The Chargers wasted the best years of the Bosa/Mack edge tandem with poor roster construction, and now carry $29M in dead cap from those mistakes. Herbert is elite but the team around him has been assembled inefficiently — too much money chasing aging pass rushers.",
+    keyStrength:"Herbert's efficiency on a still-manageable deal keeps the team viable despite mistakes.",
+    keyRisk:"Dead cap from Bosa and Mack lingers into 2025; rebuilding elite pass rush will be expensive."
+  },
+  TB: {
+    team:"Tampa Bay Buccaneers",abbr:"TB",totalCap:"$249M",capRank:11,wins:10,losses:7,
+    costPerWin:"$24.9M",efficiencyScore:60,efficiencyVerdict:"average",
+    positionBreakdown:[
+      {pos:"QB",pct:16,amount:"$40M",note:"Mayfield hometown deal exceeded value"},
+      {pos:"WR",pct:15,amount:"$37M",note:"Evans, Godwin both expensive"},
+      {pos:"OL",pct:14,amount:"$35M",note:"Wirfs anchor of top-10 line"},
+      {pos:"DL",pct:12,amount:"$30M",note:"Vita Vea dominant but costly"},
+      {pos:"LB",pct:11,amount:"$27M",note:"Devin White off books helped"},
+      {pos:"DB",pct:12,amount:"$30M",note:"Carlton Davis extension settled"},
+      {pos:"Other",pct:20,amount:"$50M",note:"White, Fournette remnants, ST"}
+    ],
+    deadCap:{total:"$26M",rank:15,players:[
+      {name:"Tom Brady",amount:"$11M",reason:"retirement prorations"},
+      {name:"Shaquil Barrett",amount:"$8.8M",reason:"cut"},
+      {name:"Leonard Fournette",amount:"$6.2M",reason:"cut"}
+    ]},
+    draftVsFA:{draftInvestment:"$124M",faInvestment:"$125M",draftPct:50,faPct:50,
+      topDraftContrib:"Tristan Wirfs, OT",topFAContrib:"Baker Mayfield, QB",
+      strategy:"FA-heavy",strategyNote:"Brady legacy costs persist; transitioning to new core"},
+    analystTake:"Tampa still pays the price for the Brady era in dead cap — $11M in Brady retirement prorations is a real cost for a player who hasn't been on the roster for two years. Mayfield outperformed his deal though, and the Bucs are better positioned than their cap sheet suggests.",
+    keyStrength:"Wirfs is the best offensive lineman in the NFL and still on a reasonable deal.",
+    keyRisk:"Brady-era dead cap clears after 2024, but Evans and Godwin are aging expensive assets."
+  },
+  DEN: {
+    team:"Denver Broncos",abbr:"DEN",totalCap:"$255M",capRank:6,wins:10,losses:7,
+    costPerWin:"$25.5M",efficiencyScore:52,efficiencyVerdict:"average",
+    positionBreakdown:[
+      {pos:"QB",pct:27,amount:"$68M",note:"Wilson $53M dead + Stidham's deal"},
+      {pos:"WR",pct:11,amount:"$28M",note:"Sutton, Jeudy gone — thin group"},
+      {pos:"OL",pct:13,amount:"$33M",note:"Garett Bolles franchise anchor"},
+      {pos:"DL",pct:13,amount:"$33M",note:"Zach Allen, DeShawn Williams"},
+      {pos:"LB",pct:10,amount:"$25M",note:"Josey Jewell veteran presence"},
+      {pos:"DB",pct:12,amount:"$31M",note:"Pat Surtain II top-5 CB value"},
+      {pos:"Other",pct:14,amount:"$37M",note:"RB Javonte Williams, TE, ST"}
+    ],
+    deadCap:{total:"$58M",rank:1,players:[
+      {name:"Russell Wilson",amount:"$53M",reason:"cut — NFL record dead cap"},
+      {name:"Jerry Jeudy",amount:"$3.2M",reason:"trade"},
+      {name:"Melvin Gordon",amount:"$1.8M",reason:"cut"}
+    ]},
+    draftVsFA:{draftInvestment:"$122M",faInvestment:"$133M",draftPct:48,faPct:52,
+      topDraftContrib:"Pat Surtain II, CB",topFAContrib:"Russell Wilson (disaster)",
+      strategy:"FA-heavy",strategyNote:"Wilson FA disaster defines this era; Bo Nix starts fresh"},
+    analystTake:"Denver's $53M Russell Wilson dead cap is the largest single-player cap hit in NFL history and the defining cautionary tale of 2024. That figure alone consumed 21% of their salary cap for a player not on the roster. The miracle is they still won 10 games — entirely due to rookie Bo Nix exceeding expectations.",
+    keyStrength:"Pat Surtain II is a top-3 cornerback on a cost-controlled deal — elite positional value.",
+    keyRisk:"$53M of dead cap from Wilson is cleared after 2024, but the roster holes he created linger."
+  },
+  PIT: {
+    team:"Pittsburgh Steelers",abbr:"PIT",totalCap:"$245M",capRank:17,wins:10,losses:7,
+    costPerWin:"$24.5M",efficiencyScore:58,efficiencyVerdict:"average",
+    positionBreakdown:[
+      {pos:"QB",pct:11,amount:"$27M",note:"Fields/Wilson platoon cost spread"},
+      {pos:"WR",pct:14,amount:"$34M",note:"Pickens extension emerging talent"},
+      {pos:"OL",pct:14,amount:"$34M",note:"Line remains below-average tier"},
+      {pos:"DL",pct:15,amount:"$37M",note:"T.J. Watt's massive deal worth it"},
+      {pos:"LB",pct:12,amount:"$29M",note:"Watt dominates pass rush spend"},
+      {pos:"DB",pct:13,amount:"$32M",note:"Fitzpatrick, Haden gone, patched"},
+      {pos:"Other",pct:21,amount:"$52M",note:"Harris, Freiermuth, ST spending"}
+    ],
+    deadCap:{total:"$21M",rank:19,players:[
+      {name:"Mitchell Trubisky",amount:"$7.8M",reason:"cut"},
+      {name:"Larry Ogunjobi",amount:"$6.5M",reason:"cut"},
+      {name:"Joe Schobert",amount:"$6.7M",reason:"cut"}
+    ]},
+    draftVsFA:{draftInvestment:"$147M",faInvestment:"$98M",draftPct:60,faPct:40,
+      topDraftContrib:"T.J. Watt, EDGE",topFAContrib:"Patrick Queen, LB",
+      strategy:"draft-heavy",strategyNote:"Steelers identity: draft defense, patch offense via FA"},
+    analystTake:"Pittsburgh's QB situation is their biggest cap inefficiency — splitting reps between Fields and Wilson while paying combined starter money for backup-level production. T.J. Watt alone justifies significant cap space; his pressure rate is the best value per dollar at edge rusher.",
+    keyStrength:"Watt's impact per cap dollar is among the best investments at any position in the NFL.",
+    keyRisk:"QB situation remains unresolved; without a clear starter, offensive cap efficiency stays poor."
+  },
+  SEA: {
+    team:"Seattle Seahawks",abbr:"SEA",totalCap:"$246M",capRank:16,wins:10,losses:7,
+    costPerWin:"$24.6M",efficiencyScore:59,efficiencyVerdict:"average",
+    positionBreakdown:[
+      {pos:"QB",pct:16,amount:"$39M",note:"Geno's extension exceeded value"},
+      {pos:"WR",pct:15,amount:"$37M",note:"Metcalf and Lockett both expensive"},
+      {pos:"OL",pct:13,amount:"$32M",note:"Charles Cross developing well"},
+      {pos:"DL",pct:13,amount:"$32M",note:"Leonard Williams trade paid off"},
+      {pos:"LB",pct:10,amount:"$25M",note:"Dre'Mont Jones anchor"},
+      {pos:"DB",pct:13,amount:"$32M",note:"Woolen bright spot on rookie deal"},
+      {pos:"Other",pct:20,amount:"$49M",note:"Walker RB, Dissly TE, ST"}
+    ],
+    deadCap:{total:"$24M",rank:17,players:[
+      {name:"Russell Wilson",amount:"$12M",reason:"trade to DEN prorations"},
+      {name:"Jamal Adams",amount:"$7.5M",reason:"cut"},
+      {name:"Rashaad Penny",amount:"$4.5M",reason:"cut"}
+    ]},
+    draftVsFA:{draftInvestment:"$131M",faInvestment:"$115M",draftPct:53,faPct:47,
+      topDraftContrib:"DK Metcalf, WR",topFAContrib:"Leonard Williams, DL",
+      strategy:"balanced",strategyNote:"Metcalf and Lockett expensive but still team's identity"},
+    analystTake:"Seattle carries Wilson trade prorations on top of expensive skill players — Metcalf and Lockett together eat 15% of the cap while Geno Smith, despite overperforming, is paid as a top-15 QB. The Williams trade was a win and Cross represents the right draft investment.",
+    keyStrength:"Tariq Woolen's rookie contract is one of the best CB values in the entire NFL.",
+    keyRisk:"Metcalf and Lockett's combined cap hit plus aging curves makes a WR restructure inevitable."
+  },
+  HOU: {
+    team:"Houston Texans",abbr:"HOU",totalCap:"$248M",capRank:13,wins:10,losses:7,
+    costPerWin:"$24.8M",efficiencyScore:63,efficiencyVerdict:"average",
+    positionBreakdown:[
+      {pos:"QB",pct:12,amount:"$30M",note:"Stroud rookie deal massive advantage"},
+      {pos:"WR",pct:15,amount:"$37M",note:"Stefon Diggs trade adds cap"},
+      {pos:"OL",pct:14,amount:"$35M",note:"Tunsil still on huge deal"},
+      {pos:"DL",pct:14,amount:"$35M",note:"Pitre, Anderson FA additions"},
+      {pos:"LB",pct:11,amount:"$27M",note:"Azeez Al-Shaair solid addition"},
+      {pos:"DB",pct:13,amount:"$32M",note:"Derek Stingley extension signed"},
+      {pos:"Other",pct:21,amount:"$52M",note:"Cooks cut savings, TE, ST"}
+    ],
+    deadCap:{total:"$19M",rank:20,players:[
+      {name:"Brandin Cooks",amount:"$8.5M",reason:"cut"},
+      {name:"Shaq Mason",amount:"$5.8M",reason:"cut"},
+      {name:"Garret Wallow",amount:"$4.7M",reason:"cut"}
+    ]},
+    draftVsFA:{draftInvestment:"$149M",faInvestment:"$99M",draftPct:60,faPct:40,
+      topDraftContrib:"C.J. Stroud, QB",topFAContrib:"Stefon Diggs, WR",
+      strategy:"balanced",strategyNote:"Stroud rookie deal subsidizes aggressive FA acquisitions"},
+    analystTake:"Houston is in the same situation as Washington and Detroit — Stroud's rookie deal is a subsidy for the entire roster. The Diggs trade was costly in cap terms but gave Stroud a legitimate No. 1 target. Tunsil's contract remains the most expensive tackle deal relative to position market.",
+    keyStrength:"Stroud's rookie deal provides 2 more years of massive flexibility before his extension.",
+    keyRisk:"Tunsil's bloated deal plus Diggs acquisition pushes OL/WR spend to an unsustainable level."
+  },
+  LAR: {
+    team:"LA Rams",abbr:"LAR",totalCap:"$255M",capRank:5,wins:10,losses:7,
+    costPerWin:"$25.5M",efficiencyScore:57,efficiencyVerdict:"average",
+    positionBreakdown:[
+      {pos:"QB",pct:17,amount:"$43M",note:"Stafford extension kicks in fully"},
+      {pos:"WR",pct:16,amount:"$41M",note:"Kupp, Nacua both top-market"},
+      {pos:"OL",pct:13,amount:"$33M",note:"Noteboom anchors rebuilt line"},
+      {pos:"DL",pct:14,amount:"$36M",note:"Aaron Donald gone but Rvrs signed"},
+      {pos:"LB",pct:10,amount:"$26M",note:"Ernest Jones exited; thin unit"},
+      {pos:"DB",pct:12,amount:"$31M",note:"Ramsey still on books partially"},
+      {pos:"Other",pct:18,amount:"$45M",note:"Cam Akers drama resolved, ST"}
+    ],
+    deadCap:{total:"$35M",rank:9,players:[
+      {name:"Jalen Ramsey",amount:"$16M",reason:"trade prorations"},
+      {name:"Aaron Donald",amount:"$11M",reason:"retirement prorations"},
+      {name:"Cam Akers",amount:"$8M",reason:"cut"}
+    ]},
+    draftVsFA:{draftInvestment:"$119M",faInvestment:"$136M",draftPct:47,faPct:53,
+      topDraftContrib:"Puka Nacua, WR",topFAContrib:"Stafford extension",
+      strategy:"FA-heavy",strategyNote:"McVay's system requires proven veterans; draft fills depth"},
+    analystTake:"The Rams carry the legacy of their Super Bowl LVI championship in dead cap — Donald and Ramsey prorations total $27M for players no longer active. McVay's offensive scheme still produces wins but the cap flexibility to reload this roster is severely constrained by past decisions.",
+    keyStrength:"Puka Nacua's emergence on a rookie deal is the best unplanned value add of 2024.",
+    keyRisk:"Donald/Ramsey prorations clear after 2024, but Stafford aging and Kupp injuries add new risk."
+  },
+  CIN: {
+    team:"Cincinnati Bengals",abbr:"CIN",totalCap:"$251M",capRank:9,wins:9,losses:8,
+    costPerWin:"$27.9M",efficiencyScore:50,efficiencyVerdict:"poor",
+    positionBreakdown:[
+      {pos:"QB",pct:18,amount:"$45M",note:"Burrow's deal full weight in 2024"},
+      {pos:"WR",pct:18,amount:"$45M",note:"Chase extension + Higgins = massive"},
+      {pos:"OL",pct:12,amount:"$30M",note:"Line remains below league average"},
+      {pos:"DL",pct:12,amount:"$30M",note:"Sam Hubbard solid value"},
+      {pos:"LB",pct:10,amount:"$25M",note:"Logan Wilson emerging cheaply"},
+      {pos:"DB",pct:11,amount:"$28M",note:"Chidobe Awuzie cut added dead cap"},
+      {pos:"Other",pct:19,amount:"$48M",note:"Mixon, Boyd, Perine spending"}
+    ],
+    deadCap:{total:"$27M",rank:14,players:[
+      {name:"Chidobe Awuzie",amount:"$8.5M",reason:"injury/cut"},
+      {name:"Ted Karras",amount:"$7.8M",reason:"cut"},
+      {name:"La'el Collins",amount:"$10.7M",reason:"cut"}
+    ]},
+    draftVsFA:{draftInvestment:"$138M",faInvestment:"$113M",draftPct:55,faPct:45,
+      topDraftContrib:"Ja'Marr Chase, WR",topFAContrib:"Orlando Brown Jr., OT",
+      strategy:"balanced",strategyNote:"Paying top dollar for Burrow and Chase leaves little room"},
+    analystTake:"Cincinnati's cap structure is a luxury tax team — Burrow and Chase together consume 36% of the cap, which is unprecedented for a QB-WR duo. The offensive line remains below average despite significant spending, which undermines the entire investment in Burrow's health and production.",
+    keyStrength:"The Burrow-Chase connection is the best QB-WR pair in football at any price.",
+    keyRisk:"OL weakness combined with Burrow injury history makes their cap concentration a serious vulnerability."
+  },
+  ARI: {
+    team:"Arizona Cardinals",abbr:"ARI",totalCap:"$237M",capRank:27,wins:8,losses:9,
+    costPerWin:"$29.6M",efficiencyScore:48,efficiencyVerdict:"poor",
+    positionBreakdown:[
+      {pos:"QB",pct:13,amount:"$31M",note:"Murray's big deal, injury history"},
+      {pos:"WR",pct:14,amount:"$33M",note:"Hollywood Brown costly; McBride cheap"},
+      {pos:"OL",pct:13,amount:"$31M",note:"Paris Johnson developing well"},
+      {pos:"DL",pct:13,amount:"$31M",note:"Bilal Nichols solid anchor"},
+      {pos:"LB",pct:11,amount:"$26M",note:"Zaven Collins still developing"},
+      {pos:"DB",pct:12,amount:"$28M",note:"Starks, Murphy building secondary"},
+      {pos:"Other",pct:24,amount:"$57M",note:"James Conner RB, TE, ST spending"}
+    ],
+    deadCap:{total:"$32M",rank:10,players:[
+      {name:"DeAndre Hopkins",amount:"$12.5M",reason:"cut"},
+      {name:"J.J. Watt",amount:"$8.8M",reason:"retirement prorations"},
+      {name:"Zach Allen",amount:"$10.7M",reason:"departed FA"}
+    ]},
+    draftVsFA:{draftInvestment:"$142M",faInvestment:"$95M",draftPct:60,faPct:40,
+      topDraftContrib:"Trey McBride, TE",topFAContrib:"Matt Prater (kicker, legacy)",
+      strategy:"draft-heavy",strategyNote:"Rebuilding through draft after Hopkins, Watt era ends"},
+    analystTake:"Arizona is in a genuine rebuilding phase masked by 8 wins — their dead cap includes prorations from Watt's retirement and Hopkins' cut, totaling $21M for players gone. Murray's contract is the defining bet; if he stays healthy, the foundation is there, but his $31M cap hit on a 8-win team is hard to justify.",
+    keyStrength:"Trey McBride is the best value TE in the NFL on a rookie deal — elite production cheaply.",
+    keyRisk:"Murray's injury history combined with his massive contract is the central organizational risk."
+  },
+  MIA: {
+    team:"Miami Dolphins",abbr:"MIA",totalCap:"$254M",capRank:6,wins:8,losses:9,
+    costPerWin:"$31.8M",efficiencyScore:42,efficiencyVerdict:"poor",
+    positionBreakdown:[
+      {pos:"QB",pct:18,amount:"$46M",note:"Tagovailoa extension kicks in"},
+      {pos:"WR",pct:17,amount:"$43M",note:"Hill's massive deal tops NFL WRs"},
+      {pos:"OL",pct:12,amount:"$30M",note:"Armstead injury issues costly"},
+      {pos:"DL",pct:12,amount:"$30M",note:"Christian Wilkins gone to LV"},
+      {pos:"LB",pct:10,amount:"$25M",note:"Andrew Van Ginkel overperformed"},
+      {pos:"DB",pct:13,amount:"$33M",note:"Ramsey addition expensive flop"},
+      {pos:"Other",pct:18,amount:"$47M",note:"Mostert, Hill bonuses, ST"}
+    ],
+    deadCap:{total:"$25M",rank:16,players:[
+      {name:"Byron Jones",amount:"$11.5M",reason:"injury — never played for payment"},
+      {name:"Christian Wilkins",amount:"$7.2M",reason:"departed FA prorations"},
+      {name:"Tyreek Hill void yr",amount:"$6.3M",reason:"restructure acceleration"}
+    ]},
+    draftVsFA:{draftInvestment:"$110M",faInvestment:"$144M",draftPct:43,faPct:57,
+      topDraftContrib:"Jaylen Waddle, WR",topFAContrib:"Tyreek Hill, WR",
+      strategy:"FA-heavy",strategyNote:"All-in on Tua era via splash signings; draft depth thin"},
+    analystTake:"Miami is the most expensive 8-win team in the NFL — $254M spent for a .471 winning percentage is catastrophic value. Hill and Tagovailoa together consume 35% of the cap, and Byron Jones' $11.5M dead cap for a player who never played a snap is one of the worst cap outcomes in recent memory.",
+    keyStrength:"Tyreek Hill's raw production statistics are still elite even if the team context is poor.",
+    keyRisk:"Byron Jones dead cap, Hill's restructure accelerations, and thin draft class create a 3-year cap problem."
+  },
+  ATL: {
+    team:"Atlanta Falcons",abbr:"ATL",totalCap:"$250M",capRank:10,wins:8,losses:9,
+    costPerWin:"$31.3M",efficiencyScore:40,efficiencyVerdict:"poor",
+    positionBreakdown:[
+      {pos:"QB",pct:16,amount:"$40M",note:"Cousins cut; now $35M dead in 2025"},
+      {pos:"WR",pct:14,amount:"$35M",note:"Drake London extension signed"},
+      {pos:"OL",pct:14,amount:"$35M",note:"Jake Matthews aging expensive anchor"},
+      {pos:"DL",pct:13,amount:"$33M",note:"Grady Jarrett still solid"},
+      {pos:"LB",pct:11,amount:"$28M",note:"Kaden Elliss adding depth"},
+      {pos:"DB",pct:12,amount:"$30M",note:"AJ Terrell top-market extension"},
+      {pos:"Other",pct:20,amount:"$49M",note:"Pitts, Bijan Robinson RB deal"}
+    ],
+    deadCap:{total:"$44M",rank:3,players:[
+      {name:"Kirk Cousins",amount:"$22.5M",reason:"cut — post-June 1 designation"},
+      {name:"Matt Ryan",amount:"$12.8M",reason:"lingering trade prorations"},
+      {name:"Calvin Ridley",amount:"$8.7M",reason:"trade prorations"}
+    ]},
+    draftVsFA:{draftInvestment:"$125M",faInvestment:"$125M",draftPct:50,faPct:50,
+      topDraftContrib:"Bijan Robinson, RB",topFAContrib:"Kirk Cousins (disaster)",
+      strategy:"FA-heavy",strategyNote:"Two consecutive FA QB disasters define the cap picture"},
+    analystTake:"Atlanta's $44M dead cap is the third-highest in the NFL — an indictment of two consecutive disastrous quarterback free agent investments. Matt Ryan prorations, Kirk Cousins' rapid failure, and Ridley trade costs add up to nearly 18% of the cap wasted. The Bijan Robinson pick was right; the QB strategy was catastrophically wrong.",
+    keyStrength:"Bijan Robinson and Drake London give the Falcons two franchise cornerstones in their 20s.",
+    keyRisk:"Cousins' $35M 2025 dead cap hit is a pre-scheduled disaster that will constrain the entire offseason."
+  },
+  IND: {
+    team:"Indianapolis Colts",abbr:"IND",totalCap:"$240M",capRank:23,wins:8,losses:9,
+    costPerWin:"$30.0M",efficiencyScore:47,efficiencyVerdict:"poor",
+    positionBreakdown:[
+      {pos:"QB",pct:12,amount:"$29M",note:"Richardson underperformed; costly"},
+      {pos:"WR",pct:13,amount:"$31M",note:"Michael Pittman extension justified"},
+      {pos:"OL",pct:16,amount:"$38M",note:"Quenton Nelson anchor top-5 line"},
+      {pos:"DL",pct:13,amount:"$31M",note:"DeForest Buckner valuable anchor"},
+      {pos:"LB",pct:11,amount:"$26M",note:"Zaire Franklin emerging value"},
+      {pos:"DB",pct:12,amount:"$29M",note:"Julian Blackmon solid at safety"},
+      {pos:"Other",pct:23,amount:"$56M",note:"Jonathan Taylor extension, TE, ST"}
+    ],
+    deadCap:{total:"$20M",rank:19,players:[
+      {name:"Ryan Kelly",amount:"$7.8M",reason:"cut"},
+      {name:"Yannick Ngakoue",amount:"$6.5M",reason:"cut"},
+      {name:"Stephon Gilmore",amount:"$5.7M",reason:"cut"}
+    ]},
+    draftVsFA:{draftInvestment:"$144M",faInvestment:"$96M",draftPct:60,faPct:40,
+      topDraftContrib:"Quenton Nelson, OL",topFAContrib:"DeForest Buckner, DT",
+      strategy:"draft-heavy",strategyNote:"Interior OL-first philosophy; QB situation unsettled"},
+    analystTake:"Indianapolis has elite offensive line construction — Nelson is the best guard in football — but the QB situation negates it. Anthony Richardson's inconsistency and injury means they're paying for a franchise QB but getting replacement-level results, a fundamental cap inefficiency.",
+    keyStrength:"Quenton Nelson is the best guard in football and still on a reasonable deal.",
+    keyRisk:"Richardson's production relative to his increasing cap cost is the central problem in Indianapolis."
+  },
+  NO: {
+    team:"New Orleans Saints",abbr:"NO",totalCap:"$258M",capRank:3,wins:5,losses:12,
+    costPerWin:"$51.6M",efficiencyScore:18,efficiencyVerdict:"wasteful",
+    positionBreakdown:[
+      {pos:"QB",pct:15,amount:"$39M",note:"Carr extension looks poor value"},
+      {pos:"WR",pct:12,amount:"$31M",note:"Olave developing; Thomas fading"},
+      {pos:"OL",pct:14,amount:"$36M",note:"Ryan Ramczyk aging anchor"},
+      {pos:"DL",pct:13,amount:"$34M",note:"Cam Jordan sunset nears"},
+      {pos:"LB",pct:12,amount:"$31M",note:"Pete Werner anchor of unit"},
+      {pos:"DB",pct:14,amount:"$36M",note:"Lattimore traded — dead cap hit"},
+      {pos:"Other",pct:20,amount:"$51M",note:"Henry most expensive WR dead cap"}
+    ],
+    deadCap:{total:"$52M",rank:2,players:[
+      {name:"Marshon Lattimore",amount:"$14M",reason:"trade — highest non-QB dead cap ever"},
+      {name:"Michael Thomas",amount:"$21M",reason:"injury/cut prorations"},
+      {name:"Drew Brees",amount:"$17M",reason:"retirement legacy prorations (cleared 2024)"}
+    ]},
+    draftVsFA:{draftInvestment:"$128M",faInvestment:"$130M",draftPct:50,faPct:50,
+      topDraftContrib:"Chris Olave, WR",topFAContrib:"Derek Carr, QB",
+      strategy:"FA-heavy",strategyNote:"Mickey Loomis restructuring magic masking systemic cap issues"},
+    analystTake:"New Orleans is the most cautionary cap tale in 2024 — $52M in dead money for a 5-win team means roughly $10M per win went to players not even on the roster. Michael Thomas' injury saga and the Lattimore trade combined to create the worst cap structure in football. Mickey Loomis' restructuring tricks have finally run out of road.",
+    keyStrength:"Chris Olave is a legitimate No. 1 WR on a still-manageable rookie-scale extension.",
+    keyRisk:"The entire cap structure needs a teardown; 22 players contributing dead cap makes rebuilding extremely slow."
+  },
+  NYG: {
+    team:"New York Giants",abbr:"NYG",totalCap:"$250M",capRank:10,wins:3,losses:14,
+    costPerWin:"$83.3M",efficiencyScore:8,efficiencyVerdict:"wasteful",
+    positionBreakdown:[
+      {pos:"QB",pct:14,amount:"$35M",note:"Daniel Jones cut; $22M dead cap"},
+      {pos:"WR",pct:12,amount:"$30M",note:"Waller, Hyatt both disappointing"},
+      {pos:"OL",pct:14,amount:"$35M",note:"Andrew Thomas anchor of line"},
+      {pos:"DL",pct:14,amount:"$35M",note:"Dexter Lawrence elite value"},
+      {pos:"LB",pct:11,amount:"$28M",note:"Bobby Okereke addition"},
+      {pos:"DB",pct:13,amount:"$33M",note:"Xavier McKinney departed to GB"},
+      {pos:"Other",pct:22,amount:"$54M",note:"Barkley departed; Hyatt, TE thin"}
+    ],
+    deadCap:{total:"$48M",rank:4,players:[
+      {name:"Daniel Jones",amount:"$22.2M",reason:"cut — benched mid-season"},
+      {name:"Leonard Williams",amount:"$16.5M",reason:"trade to SEA prorations"},
+      {name:"Saquon Barkley",amount:"$9.3M",reason:"departed FA prorations"}
+    ]},
+    draftVsFA:{draftInvestment:"$130M",faInvestment:"$120M",draftPct:52,faPct:48,
+      topDraftContrib:"Dexter Lawrence, DT",topFAContrib:"Bobby Okereke, LB",
+      strategy:"balanced",strategyNote:"Jones contract disaster defines this era; Daboll on hot seat"},
+    analystTake:"New York's $83M cost per win is the worst in the NFL — the Daniel Jones contract is one of the most expensive mistakes in recent memory. Jones received $104M guaranteed after one playoff win, and the Giants will pay for it through 2025. Dexter Lawrence is the only elite player on the roster and he's underutilized.",
+    keyStrength:"Dexter Lawrence is a top-3 interior defender in football at a team-friendly price.",
+    keyRisk:"Jones' dead cap plus Barkley and Williams prorations leave almost no flexibility to rebuild through FA."
+  },
+  NE: {
+    team:"New England Patriots",abbr:"NE",totalCap:"$236M",capRank:28,wins:4,losses:13,
+    costPerWin:"$59.0M",efficiencyScore:22,efficiencyVerdict:"wasteful",
+    positionBreakdown:[
+      {pos:"QB",pct:11,amount:"$26M",note:"Mac Jones era fully over; Drake Maye cheap"},
+      {pos:"WR",pct:11,amount:"$26M",note:"Kendrick Bourne, JuJu additions"},
+      {pos:"OL",pct:14,amount:"$33M",note:"Trent Brown anchor of weakened line"},
+      {pos:"DL",pct:13,amount:"$31M",note:"Christian Barmore solid DT"},
+      {pos:"LB",pct:12,amount:"$28M",note:"Dont'a Hightower legacy gone"},
+      {pos:"DB",pct:13,amount:"$31M",note:"Kyle Dugger best player on defense"},
+      {pos:"Other",pct:26,amount:"$61M",note:"Rhamondre Stevenson, JuJu, misc."}
+    ],
+    deadCap:{total:"$33M",rank:10,players:[
+      {name:"Mac Jones",amount:"$12.5M",reason:"trade to JAX — draft pick bust"},
+      {name:"Isaiah Wynn",amount:"$9.8M",reason:"cut"},
+      {name:"Nelson Agholor",amount:"$10.7M",reason:"cut"}
+    ]},
+    draftVsFA:{draftInvestment:"$118M",faInvestment:"$118M",draftPct:50,faPct:50,
+      topDraftContrib:"Kyle Dugger, S",topFAContrib:"JuJu Smith-Schuster, WR",
+      strategy:"balanced",strategyNote:"Post-Belichick rebuild; Maye rookie deal is the reset button"},
+    analystTake:"New England is in full rebuild mode and the cap reflects it — $33M in dead money from the Belichick era's failed investments while Drake Maye sits on a cheap rookie deal. The Patriots are actually in better cap shape than their record suggests; clearing out the dead weight of Mac Jones, Wynn, and Agholor is the right medicine.",
+    keyStrength:"Drake Maye's rookie deal gives the Patriots a multi-year window to rebuild around him cheaply.",
+    keyRisk:"The receiving corps is deeply below average and FA spending in that area has consistently failed."
+  },
+  CHI: {
+    team:"Chicago Bears",abbr:"CHI",totalCap:"$241M",capRank:22,wins:5,losses:12,
+    costPerWin:"$48.2M",efficiencyScore:28,efficiencyVerdict:"wasteful",
+    positionBreakdown:[
+      {pos:"QB",pct:10,amount:"$24M",note:"Caleb Williams rookie deal — gold"},
+      {pos:"WR",pct:16,amount:"$39M",note:"Keenan Allen and Moore both expensive"},
+      {pos:"OL",pct:14,amount:"$34M",note:"Darnell Wright developing; Braxton Jones"},
+      {pos:"DL",pct:13,amount:"$31M",note:"Montez Sweat arrival expensive"},
+      {pos:"LB",pct:12,amount:"$29M",note:"Tremaine Edmunds big FA spend"},
+      {pos:"DB",pct:12,amount:"$29M",note:"Jaylon Johnson extension signed"},
+      {pos:"Other",pct:23,amount:"$55M",note:"Cole Kmet, D'Andre Swift, misc."}
+    ],
+    deadCap:{total:"$28M",rank:12,players:[
+      {name:"Justin Fields",amount:"$14.5M",reason:"trade to PIT"},
+      {name:"Robert Quinn",amount:"$7.8M",reason:"cut"},
+      {name:"Cairo Santos",amount:"$5.7M",reason:"cut"}
+    ]},
+    draftVsFA:{draftInvestment:"$120M",faInvestment:"$121M",draftPct:50,faPct:50,
+      topDraftContrib:"Caleb Williams, QB",topFAContrib:"Keenan Allen, WR",
+      strategy:"balanced",strategyNote:"Poles building roster around Williams window; Fields dead cap lingers"},
+    analystTake:"Chicago's $28M dead cap includes $14.5M for Justin Fields — they're paying two QBs while developing one. Caleb Williams' cheap rookie deal is the foundation, but Keenan Allen at $23M for a receiver in his mid-30s is a significant overpay. Tremaine Edmunds' deal hasn't delivered the impact expected.",
+    keyStrength:"Caleb Williams on rookie deal is the most valuable asset in Chicago by a significant margin.",
+    keyRisk:"Fields dead cap plus aging expensive skill players means Williams is developing without a strong supporting cast."
+  },
+  LV: {
+    team:"Las Vegas Raiders",abbr:"LV",totalCap:"$247M",capRank:15,wins:4,losses:13,
+    costPerWin:"$61.8M",efficiencyScore:15,efficiencyVerdict:"wasteful",
+    positionBreakdown:[
+      {pos:"QB",pct:14,amount:"$35M",note:"Aidan O'Connell on cheap deal"},
+      {pos:"WR",pct:13,amount:"$32M",note:"Davante Adams — enormous cap hit"},
+      {pos:"OL",pct:14,amount:"$35M",note:"Kolton Miller anchor of line"},
+      {pos:"DL",pct:15,amount:"$37M",note:"Maxx Crosby anchor — true value"},
+      {pos:"LB",pct:11,amount:"$27M",note:"Robert Spillane solid addition"},
+      {pos:"DB",pct:12,amount:"$30M",note:"Nate Hobbs emerging cheaply"},
+      {pos:"Other",pct:21,amount:"$51M",note:"Christian Wilkins FA, Josh Jacobs"}
+    ],
+    deadCap:{total:"$41M",rank:5,players:[
+      {name:"Davante Adams",amount:"$18M",reason:"trade prorations — Rodgers domino"},
+      {name:"Derek Carr",amount:"$14.5M",reason:"cut — post-June 1"},
+      {name:"Aaron Rodgers",amount:"$8.5M",reason:"trade prorations to NYJ"}
+    ]},
+    draftVsFA:{draftInvestment:"$112M",faInvestment:"$135M",draftPct:45,faPct:55,
+      topDraftContrib:"Maxx Crosby, EDGE",topFAContrib:"Davante Adams (disaster)",
+      strategy:"FA-heavy",strategyNote:"Rodgers-Adams gamble failed spectacularly; now paying the price"},
+    analystTake:"Las Vegas is paying $41M in dead cap for the failed Rodgers-Adams experiment — Adams alone carries $18M for a player traded away after the Rodgers disaster. Maxx Crosby is the only genuine star and his contract is the only defensible spending. The entire cap needs to be rebuilt from scratch.",
+    keyStrength:"Maxx Crosby is a top-3 edge rusher in football and his deal is still below market.",
+    keyRisk:"$41M dead cap for a 4-win team means over $10M per win went to players not on the roster."
+  },
+  JAX: {
+    team:"Jacksonville Jaguars",abbr:"JAX",totalCap:"$249M",capRank:12,wins:4,losses:13,
+    costPerWin:"$62.3M",efficiencyScore:20,efficiencyVerdict:"wasteful",
+    positionBreakdown:[
+      {pos:"QB",pct:17,amount:"$42M",note:"Lawrence extension full value hit"},
+      {pos:"WR",pct:14,amount:"$35M",note:"Calvin Ridley acquisition costly"},
+      {pos:"OL",pct:13,amount:"$32M",note:"Cam Robinson aging LT anchor"},
+      {pos:"DL",pct:13,amount:"$32M",note:"Foley Fatukasi huge bust signing"},
+      {pos:"LB",pct:11,amount:"$27M",note:"Devin Lloyd developing"},
+      {pos:"DB",pct:12,amount:"$30M",note:"Darious Williams solid addition"},
+      {pos:"Other",pct:20,amount:"$51M",note:"Travis Etienne extension, TE, ST"}
+    ],
+    deadCap:{total:"$37M",rank:7,players:[
+      {name:"Foley Fatukasi",amount:"$14.5M",reason:"cut — worst FA signing 2022"},
+      {name:"Shaquille Leonard",amount:"$11.2M",reason:"trade/cut prorations"},
+      {name:"Jawaan Taylor",amount:"$11.3M",reason:"departed FA prorations"}
+    ]},
+    draftVsFA:{draftInvestment:"$130M",faInvestment:"$119M",draftPct:52,faPct:48,
+      topDraftContrib:"Trevor Lawrence, QB",topFAContrib:"Calvin Ridley, WR",
+      strategy:"balanced",strategyNote:"Lawrence extension bet all-in; FA misfires eroded the roster"},
+    analystTake:"Jacksonville's collapse from AFC South contender to 4 wins is partly a cap story — $37M in dead money from failed signings like Fatukasi ($14.5M for a player who contributed nothing) left Doug Pederson without depth. Trevor Lawrence's extension was the right call but the roster around him is bare.",
+    keyStrength:"Trevor Lawrence remains an elite talent; if healthy, the on-field ceiling is still high.",
+    keyRisk:"Fatukasi and Leonard dead cap linger; Ridley underperformed his contract significantly in 2024."
+  },
+  TEN: {
+    team:"Tennessee Titans",abbr:"TEN",totalCap:"$233M",capRank:31,wins:3,losses:14,
+    costPerWin:"$77.7M",efficiencyScore:12,efficiencyVerdict:"wasteful",
+    positionBreakdown:[
+      {pos:"QB",pct:12,amount:"$28M",note:"Will Levis rookie deal only bright spot"},
+      {pos:"WR",pct:12,amount:"$28M",note:"DeAndre Hopkins aging expensive"},
+      {pos:"OL",pct:14,amount:"$33M",note:"Peter Skoronski anchor of future line"},
+      {pos:"DL",pct:13,amount:"$30M",note:"Jeffery Simmons still solid value"},
+      {pos:"LB",pct:11,amount:"$26M",note:"Harold Landry aging contract"},
+      {pos:"DB",pct:12,amount:"$28M",note:"Roger McCreery thin secondary"},
+      {pos:"Other",pct:26,amount:"$60M",note:"Henry gone; Charbonnet, TE, misc."}
+    ],
+    deadCap:{total:"$39M",rank:6,players:[
+      {name:"Ryan Tannehill",amount:"$16.5M",reason:"cut — aging vet contract"},
+      {name:"Derrick Henry",amount:"$12.8M",reason:"departed FA prorations"},
+      {name:"Dion Lewis",amount:"$9.7M",reason:"legacy contract prorations"}
+    ]},
+    draftVsFA:{draftInvestment:"$140M",faInvestment:"$93M",draftPct:60,faPct:40,
+      topDraftContrib:"Jeffery Simmons, DT",topFAContrib:"DeAndre Hopkins, WR",
+      strategy:"draft-heavy",strategyNote:"Full rebuild mode; Tannehill and Henry era dead cap dominant"},
+    analystTake:"Tennessee is in the most obvious rebuild in the NFL — 3 wins on the second-lowest payroll, with $39M in dead cap from Tannehill and Henry. The Vrabel era is over and the books reflect it. Will Levis is the only optimistic data point; if he develops, the low overall cap spend gives them room to build quickly.",
+    keyStrength:"Low total cap spend means cap space to add talent once dead money clears after 2024.",
+    keyRisk:"Tannehill and Henry's combined dead cap plus thin roster makes a 2-3 year rebuild the realistic timeline."
+  },
+  CAR: {
+    team:"Carolina Panthers",abbr:"CAR",totalCap:"$235M",capRank:30,wins:5,losses:12,
+    costPerWin:"$47.0M",efficiencyScore:25,efficiencyVerdict:"wasteful",
+    positionBreakdown:[
+      {pos:"QB",pct:19,amount:"$45M",note:"Bryce Young + Baker dead cap"},
+      {pos:"WR",pct:12,amount:"$28M",note:"Diontae Johnson costly addition"},
+      {pos:"OL",pct:13,amount:"$31M",note:"Taylor Moton anchor; line still poor"},
+      {pos:"DL",pct:13,amount:"$31M",note:"Derrick Brown solid anchor"},
+      {pos:"LB",pct:11,amount:"$26M",note:"Shaq Thompson legacy contract"},
+      {pos:"DB",pct:12,amount:"$28M",note:"DJ Wonnum added pass rush help"},
+      {pos:"Other",pct:20,amount:"$46M",note:"Chuba Hubbard RB, TE, misc."}
+    ],
+    deadCap:{total:"$43M",rank:4,players:[
+      {name:"Baker Mayfield",amount:"$18.5M",reason:"cut — paid twice for QB position"},
+      {name:"Sam Darnold",amount:"$12.8M",reason:"departed FA prorations"},
+      {name:"Christian McCaffrey",amount:"$11.7M",reason:"trade prorations to SF"}
+    ]},
+    draftVsFA:{draftInvestment:"$115M",faInvestment:"$120M",draftPct:49,faPct:51,
+      topDraftContrib:"Bryce Young, QB",topFAContrib:"Baker Mayfield (legacy dead)",
+      strategy:"FA-heavy",strategyNote:"Paid for three QBs in one year; CMC trade haunts books"},
+    analystTake:"Carolina's QB carousel is the most expensive dysfunction in the NFL — they carry dead cap from Baker Mayfield, Darnold departures, and Bryce Young all simultaneously while paying for one starting position three times over. The McCaffrey trade prorations add insult to injury on a roster with the worst point differential in the league.",
+    keyStrength:"Taylor Moton is a top-10 tackle on a still-manageable deal — rare bright spot.",
+    keyRisk:"Three-QB dead cap situation plus Young's regression creates a potential #1 pick scenario in 2025."
+  },
+  NYJ: {
+    team:"New York Jets",abbr:"NYJ",totalCap:"$252M",capRank:8,wins:5,losses:12,
+    costPerWin:"$50.4M",efficiencyScore:20,efficiencyVerdict:"wasteful",
+    positionBreakdown:[
+      {pos:"QB",pct:20,amount:"$50M",note:"Rodgers full cap hit after injury return"},
+      {pos:"WR",pct:14,amount:"$35M",note:"Garrett Wilson elite value deal"},
+      {pos:"OL",pct:13,amount:"$33M",note:"Duane Brown retired; line collapsed"},
+      {pos:"DL",pct:14,amount:"$35M",note:"Quinnen Williams anchor"},
+      {pos:"LB",pct:11,amount:"$28M",note:"C.J. Mosley aging expensive"},
+      {pos:"DB",pct:12,amount:"$30M",note:"Sauce Gardner still on rookie deal"},
+      {pos:"Other",pct:16,amount:"$41M",note:"Breece Hall extension signed"}
+    ],
+    deadCap:{total:"$45M",rank:5,players:[
+      {name:"Aaron Rodgers",amount:"$22M",reason:"restructure prorations accelerated"},
+      {name:"Zach Wilson",amount:"$14.5M",reason:"cut — $38M bust total"},
+      {name:"Elijah Moore",amount:"$8.5M",reason:"trade prorations"}
+    ]},
+    draftVsFA:{draftInvestment:"$117M",faInvestment:"$135M",draftPct:46,faPct:54,
+      topDraftContrib:"Sauce Gardner, CB",topFAContrib:"Aaron Rodgers (disaster)",
+      strategy:"FA-heavy",strategyNote:"Rodgers acquisition failed; Wilson bust and Rodgers together = $65M wasted"},
+    analystTake:"New York's cap situation is a graveyard of QB decisions — Zach Wilson ($38M total for nothing), Aaron Rodgers restructure prorations, and a 5-win season represents generational mismanagement. Sauce Gardner on a rookie deal is a genuine superstar being wasted; Garrett Wilson is elite. The talent is there; the QB decisions have been catastrophic.",
+    keyStrength:"Sauce Gardner is the best cornerback in the NFL and still on a cost-controlled deal.",
+    keyRisk:"Rodgers' accelerated prorations and age make 2025 another transition year regardless of this year's outcome."
+  },
+  CLE: {
+    team:"Cleveland Browns",abbr:"CLE",totalCap:"$255M",capRank:5,wins:3,losses:14,
+    costPerWin:"$85.0M",efficiencyScore:5,efficiencyVerdict:"wasteful",
+    positionBreakdown:[
+      {pos:"QB",pct:24,amount:"$61M",note:"Watson — worst value contract in NFL"},
+      {pos:"WR",pct:11,amount:"$28M",note:"Amari Cooper cut; Elijah Moore"},
+      {pos:"OL",pct:14,amount:"$36M",note:"Wyatt Teller anchor of solid line"},
+      {pos:"DL",pct:13,amount:"$33M",note:"Myles Garrett elite anchor"},
+      {pos:"LB",pct:11,amount:"$28M",note:"Jeremiah Owusu-Koramoah solid"},
+      {pos:"DB",pct:12,amount:"$31M",note:"Greg Newsome developing"},
+      {pos:"Other",pct:15,amount:"$38M",note:"Nick Chubb injury remnants, ST"}
+    ],
+    deadCap:{total:"$25M",rank:16,players:[
+      {name:"Amari Cooper",amount:"$12.5M",reason:"cut"},
+      {name:"Jacoby Brissett",amount:"$6.8M",reason:"backup contract"},
+      {name:"Nick Chubb",amount:"$5.7M",reason:"injury restructure"}
+    ]},
+    draftVsFA:{draftInvestment:"$119M",faInvestment:"$136M",draftPct:47,faPct:53,
+      topDraftContrib:"Myles Garrett, EDGE",topFAContrib:"Deshaun Watson (disaster)",
+      strategy:"FA-heavy",strategyNote:"Watson's $230M guaranteed is the most destructive deal in NFL history"},
+    analystTake:"Deshaun Watson's $230M fully guaranteed contract is the defining cap catastrophe of this NFL era — Cleveland is paying $61M for a QB who delivered 3 wins and was sidelined for much of the year. Watson's deal is so large and so guaranteed that the Browns cannot escape it; they are contractually obligated to this outcome through 2026. Myles Garrett deserves better.",
+    keyStrength:"Myles Garrett is the best defensive player in football — his cap value is exceptional.",
+    keyRisk:"Watson's fully guaranteed deal through 2026 means this dysfunction is a multi-year structural reality."
+  },
+  SF: {
+    team:"San Francisco 49ers",abbr:"SF",totalCap:"$259M",capRank:2,wins:6,losses:11,
+    costPerWin:"$43.2M",efficiencyScore:35,efficiencyVerdict:"poor",
+    positionBreakdown:[
+      {pos:"QB",pct:16,amount:"$41M",note:"Purdy extension kicks in; injury cost"},
+      {pos:"WR",pct:15,amount:"$39M",note:"Deebo, Aiyuk both top-market"},
+      {pos:"OL",pct:13,amount:"$34M",note:"Williams, McGlinchey gone; rebuild"},
+      {pos:"DL",pct:14,amount:"$36M",note:"Nick Bosa's massive deal full hit"},
+      {pos:"LB",pct:12,amount:"$31M",note:"Dre Greenlaw injury-delayed season"},
+      {pos:"DB",pct:11,amount:"$28",note:"Charvarius Ward solid anchor"},
+      {pos:"Other",pct:19,amount:"$50M",note:"McCaffrey RB deal, Kittle TE extension"}
+    ],
+    deadCap:{total:"$38M",rank:7,players:[
+      {name:"Trent Williams",amount:"$15M",reason:"trade prorations"},
+      {name:"Jimmy Garoppolo",amount:"$13.5M",reason:"cut — lingering prorations"},
+      {name:"Dee Ford",amount:"$9.5M",reason:"retirement — never played prorations"}
+    ]},
+    draftVsFA:{draftInvestment:"$135M",faInvestment:"$124M",draftPct:52,faPct:48,
+      topDraftContrib:"Brock Purdy, QB",topFAContrib:"Christian McCaffrey (trade)",
+      strategy:"balanced",strategyNote:"World's best roster but injury chaos defined 2024; Purdy's deal key"},
+    analystTake:"San Francisco's 6-11 record is the single greatest delta between talent and wins in 2024 — the roster was built to win a Super Bowl but injuries decimated the season. The cap is heavily leveraged: Bosa, Aiyuk, Deebo, Kittle, and McCaffrey are all top-of-market for their position. When healthy, no roster in football compares.",
+    keyStrength:"The sheer density of elite players is unmatched — on a healthy roster this is the best team in football.",
+    keyRisk:"Dee Ford's $9.5M prorations for a player who never played illustrates the systemic injury risk in this cap structure."
+  },
+  DAL: {
+    team:"Dallas Cowboys",abbr:"DAL",totalCap:"$261M",capRank:1,wins:7,losses:10,
+    costPerWin:"$37.3M",efficiencyScore:38,efficiencyVerdict:"poor",
+    positionBreakdown:[
+      {pos:"QB",pct:18,amount:"$47M",note:"Dak Prescott extension full weight"},
+      {pos:"WR",pct:15,amount:"$39M",note:"CeeDee Lamb extension maximum"},
+      {pos:"OL",pct:13,amount:"$34M",note:"Williams, Martin both expensive"},
+      {pos:"DL",pct:13,amount:"$34M",note:"Micah Parsons EDGE deal signed"},
+      {pos:"LB",pct:12,amount:"$31M",note:"Parsons anchor; DeMarcus Lawrence aging"},
+      {pos:"DB",pct:11,amount:"$29M",note:"Trevon Diggs expensive CB"},
+      {pos:"Other",pct:18,amount:"$47M",note:"Zeke legacy gone; Elliott FA flop"}
+    ],
+    deadCap:{total:"$34M",rank:9,players:[
+      {name:"Ezekiel Elliott",amount:"$12.8M",reason:"cut/return prorations"},
+      {name:"DeMarcus Lawrence",amount:"$11.5M",reason:"aging contract overpay"},
+      {name:"Dalton Schultz",amount:"$9.7M",reason:"departed FA prorations"}
+    ]},
+    draftVsFA:{draftInvestment:"$131M",faInvestment:"$130M",draftPct:50,faPct:50,
+      topDraftContrib:"Micah Parsons, LB",topFAContrib:"Brandin Cooks (cut, wasted)",
+      strategy:"balanced",strategyNote:"Stars and scrubs model — elite players, cheap depth, inconsistent results"},
+    analystTake:"Dallas has the highest total cap spend in the NFL and delivered 7 wins — the league's most expensive disappointment. The Cowboys' stars-and-scrubs model has elite players at every premium position but the drop-off to the second and third tiers is severe. Dak, Lamb, and Parsons are worth their contracts; the system around them is not.",
+    keyStrength:"Micah Parsons is the best linebacker in football and arguably the most disruptive defender in the game.",
+    keyRisk:"The highest cap spend in the NFL producing a 7-win season signals structural inefficiency in roster construction."
+  }
+};
+
+function effColor(s){return s>=70?'#00a651':s>=45?'#b8900a':'#e63946';}
+function vCls(v){return['elite','good'].includes(v)?'vg':v==='average'?'vm':'vb';}
+function vIcon(v){return{elite:'⚡',good:'✓',average:'~',poor:'↓',wasteful:'✗'}[v]||'~';}
+function sCo(s){return{'draft-heavy':'green',balanced:'gold','FA-heavy':'red'}[s]||'gold';}
+
+const TEAMS=['ARI','ATL','BAL','BUF','CAR','CHI','CIN','CLE','DAL','DEN','DET','GB','HOU','IND','JAX','KC','LAC','LAR','LV','MIA','MIN','NE','NO','NYG','NYJ','PHI','PIT','SEA','SF','TB','TEN','WSH'];
+let active=null;
+const tg=document.getElementById('tg');
+TEAMS.forEach(t=>{
+  const b=document.createElement('button');
+  b.className='tbtn';b.textContent=t;b.id='b-'+t;
+  b.addEventListener('click',()=>pick(t));
+  tg.appendChild(b);
+});
+
+function pick(abbr){
+  if(active)document.getElementById('b-'+active).classList.remove('active');
+  active=abbr;
+  document.getElementById('b-'+abbr).classList.add('active');
+  render(DATA[abbr]);
+}
+
+function render(d){
+  const eff=d.efficiencyScore;
+  const pRows=(d.positionBreakdown||[]).map(p=>`
+    <div class="pos-row">
+      <span class="pl">${p.pos}</span>
+      <div class="pt"><div class="pb" data-pct="${Math.min(100,p.pct||0)}" style="width:0%;background:${PC[p.pos]||'#666'}"></div></div>
+      <span class="pa">${p.amount}</span>
+    </div>`).join('');
+  const dRows=(d.deadCap?.players||[]).map(p=>`
+    <div class="dr">
+      <div><div class="dn2">${p.name}</div><div class="drr">${p.reason}</div></div>
+      <div class="da">${p.amount}</div>
+    </div>`).join('');
+  const sc=sCo(d.draftVsFA?.strategy);
+  document.getElementById('results').innerHTML=`
+    <div class="team-hero">
+      <div>
+        <div class="t-name">${d.team}</div>
+        <div class="tags">
+          <span class="tag tg">2024 SEASON</span>
+          <span class="tag tb">${d.wins}–${d.losses}</span>
+          <span class="tag to">CAP RANK #${d.capRank}</span>
+        </div>
+      </div>
+      <span class="verdict ${vCls(d.efficiencyVerdict)}">${vIcon(d.efficiencyVerdict)} ${(d.efficiencyVerdict||'average').toUpperCase()}</span>
+    </div>
+    <div class="mgrid">
+      <div class="mc"><div class="ml">Total cap spend</div><div class="mv">${d.totalCap}</div><div class="ms">Rank #${d.capRank} in NFL</div></div>
+      <div class="mc"><div class="ml">2024 record</div><div class="mv">${d.wins}–${d.losses}</div><div class="ms">Cost/win: ${d.costPerWin}</div></div>
+      <div class="mc"><div class="ml">Dead cap</div><div class="mv" style="color:var(--red)">${d.deadCap?.total||'N/A'}</div><div class="ms">Rank #${d.deadCap?.rank||'?'} most dead $</div></div>
+      <div class="mc"><div class="ml">Efficiency score</div><div class="mv" style="color:${effColor(eff)}">${eff}<span style="font-size:15px;opacity:.5">/100</span></div><div class="ms">${d.efficiencyVerdict} value</div></div>
+    </div>
+    <div class="sec">Cap efficiency</div>
+    <div class="eff-labels"><span>Wasteful</span><span>Average</span><span>Elite</span></div>
+    <div class="eff-track"><div class="eff-fill" id="ef" style="width:0%"></div></div>
+    <p style="font-size:12px;color:var(--t2);margin-top:8px;font-family:'DM Mono',monospace">${d.team} scores <strong style="color:${effColor(eff)}">${eff}/100</strong></p>
+    <div class="sec">Position group spending</div>
+    <div class="pos-bars">${pRows}</div>
+    <div class="sec">Draft picks vs. free agents</div>
+    <div class="dvf">
+      <div class="dc"><div class="dl">Draft investment</div><div class="dn green">${d.draftVsFA?.draftPct||0}%</div><div class="ds">${d.draftVsFA?.draftInvestment} active cap</div><div class="ds" style="margin-top:8px">⭐ ${d.draftVsFA?.topDraftContrib||'—'}</div></div>
+      <div class="dc"><div class="dl">Free agent investment</div><div class="dn ${sc}">${d.draftVsFA?.faPct||0}%</div><div class="ds">${d.draftVsFA?.faInvestment} active cap</div><div class="ds" style="margin-top:8px">⭐ ${d.draftVsFA?.topFAContrib||'—'}</div></div>
+    </div>
+    <div class="strat">Strategy: <strong style="color:var(--t)">${d.draftVsFA?.strategy||'balanced'}</strong> — ${d.draftVsFA?.strategyNote||''}</div>
+    <div class="sec">Dead cap breakdown</div>
+    <div class="dead-list">${dRows}</div>
+    <div class="sec">Analyst take</div>
+    <div class="abox">
+      <h3>📊 Cap Analysis — ${d.team}</h3>
+      <p>${d.analystTake}</p>
+      <p style="margin-top:12px"><span class="kl g">Strength</span>${d.keyStrength}</p>
+      <p style="margin-top:10px"><span class="kl r">Key risk</span>${d.keyRisk}</p>
+    </div>`;
+  setTimeout(()=>{
+    document.getElementById('ef').style.width=eff+'%';
+    document.querySelectorAll('.pb').forEach(b=>{b.style.width=b.dataset.pct+'%';});
+  },80);
+}
+</script>
+</body>
+</html>
